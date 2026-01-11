@@ -37,7 +37,7 @@ npm run preview
 Build and publish the image to GHCR so you can reference it from `docker-compose.yml`.
 
 ```bash
-export GHCR_USER="your-github-username"
+export GHCR_USER="sutro-cloud"
 export GHCR_REPO="jellyflow"
 export GHCR_TAG="latest"
 
@@ -53,7 +53,7 @@ Notes:
   ```yaml
   services:
     jellyflow:
-      image: ghcr.io/your-github-username/jellyflow:latest
+      image: ghcr.io/sutro-cloud/jellyflow:latest
   ```
 
 ## Ads (optional)
