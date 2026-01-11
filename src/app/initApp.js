@@ -10,6 +10,7 @@ import {
   focusActiveCover,
   focusTrackByDelta,
   getOpenTrackButtons,
+  handleCoverClick,
   jumpToAlbumById,
   jumpToArtistPrefix,
   moveActiveIndex,
@@ -151,7 +152,33 @@ function setupEvents() {
   dom.coverflowTrack.addEventListener(
     "click",
     (event) => {
-      if (event.target.closest(".tracklist") || event.target.closest(".coverflow-back")) {
+      const target = event.target;
+      if (target.closest(".tracklist")) {
+        return;
+      }
+      if (state.openAlbumId) {
+        event.preventDefault();
+        event.stopPropagation();
+        closeOpenAlbum();
+        return;
+      }
+      const activeItem = dom.coverflowTrack.children[state.activeIndex];
+      if (activeItem) {
+        const rect = activeItem.getBoundingClientRect();
+        if (
+          event.clientX >= rect.left &&
+          event.clientX <= rect.right &&
+          event.clientY >= rect.top &&
+          event.clientY <= rect.bottom
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+          handleCoverClick(state.activeIndex);
+          focusActiveCover();
+          return;
+        }
+      }
+      if (target.closest(".coverflow-item")) {
         return;
       }
       const candidates = document.elementsFromPoint(event.clientX, event.clientY);
@@ -284,6 +311,9 @@ function setupEvents() {
     }
     const target = event.target;
     if (target && target.closest && target.closest(".coverflow-item.is-open")) {
+      return;
+    }
+    if (dom.coverflowTrack && dom.coverflowTrack.contains(target)) {
       return;
     }
     closeOpenAlbum();

@@ -19,6 +19,7 @@ export function initDom() {
     resetBtn: document.getElementById("resetBtn"),
     themeToggle: document.getElementById("themeToggle"),
     coverflowTrack: document.getElementById("coverflowTrack"),
+    coverflowStage: document.getElementById("coverflowStage"),
     coverflowEmpty: document.getElementById("coverflowEmpty"),
     coverflowEmptyIcon: document.getElementById("coverflowEmptyIcon"),
     coverflowEmptyTitle: document.getElementById("coverflowEmptyTitle"),

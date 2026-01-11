@@ -30,15 +30,15 @@
 
 body.theme-dark {
   color-scheme: dark;
-  --bg: #11100e;
-  --panel: #1d1b18;
-  --panel-veil: rgba(28, 26, 24, 0.78);
-  --panel-veil-strong: rgba(28, 26, 24, 0.88);
-  --panel-chip: rgba(34, 31, 28, 0.9);
+  --bg: #060606;
+  --panel: #141414;
+  --panel-veil: rgba(16, 16, 16, 0.78);
+  --panel-veil-strong: rgba(16, 16, 16, 0.88);
+  --panel-chip: rgba(24, 24, 24, 0.9);
   --ghost: rgba(255, 255, 255, 0.08);
   --scroll: rgba(255, 255, 255, 0.22);
-  --cover-bg: #221f1b;
-  --placeholder-gradient: linear-gradient(135deg, #2b2621, #1f1c18);
+  --cover-bg: #181818;
+  --placeholder-gradient: linear-gradient(135deg, #1d1d1d, #121212);
   --placeholder-ink: rgba(255, 255, 255, 0.4);
   --field-border: rgba(255, 255, 255, 0.2);
   --panel-border: rgba(255, 255, 255, 0.16);
@@ -50,9 +50,9 @@ body.theme-dark {
   --mint: #4bc3a5;
   --shadow: rgba(0, 0, 0, 0.45);
   --shadow-strong: rgba(0, 0, 0, 0.7);
-  --bg-gradient: radial-gradient(circle at top, #2a2622 0%, #151412 50%, #0b0b0a 100%);
+  --bg-gradient: radial-gradient(circle at top, #1b1b1b 0%, #0f0f0f 55%, #060606 100%);
   --overlay-1: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.08), transparent 40%);
-  --overlay-2: radial-gradient(circle at 80% 10%, rgba(255, 140, 107, 0.18), transparent 45%);
+  --overlay-2: radial-gradient(circle at 80% 10%, rgba(255, 255, 255, 0.05), transparent 45%);
   --overlay-3: repeating-linear-gradient(120deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.03) 1px, transparent 1px, transparent 10px);
 }
 
@@ -307,10 +307,18 @@ body.is-playlist-open .playlist-toggle::after {
   position: relative;
   perspective: 1400px;
   perspective-origin: center;
+  -webkit-perspective: 1400px;
+  -webkit-perspective-origin: center;
   overflow: visible;
   transform-style: preserve-3d;
   -webkit-transform-style: preserve-3d;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
   touch-action: pan-y;
+}
+
+.coverflow-stage.safari-perspective-kick {
+  perspective: 1401px;
 }
 
 .coverflow-empty {
@@ -383,11 +391,20 @@ body.is-playlist-open .playlist-toggle::after {
 .coverflow-track {
   position: absolute;
   inset: 0;
+  perspective: 1400px;
+  perspective-origin: center;
+  -webkit-perspective: 1400px;
+  -webkit-perspective-origin: center;
   transform-style: preserve-3d;
   -webkit-transform-style: preserve-3d;
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
   touch-action: pan-y;
+}
+
+.coverflow-track.safari-3d-kick {
+  transform: translateZ(0.01px);
+  -webkit-transform: translateZ(0.01px);
 }
 
 .coverflow-item {

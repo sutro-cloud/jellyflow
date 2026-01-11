@@ -19,7 +19,7 @@ export default function App() {
       <main className="main">
         <section className="coverflow-section" id="coverflowSection">
           <div className="coverflow">
-            <div className="coverflow-stage">
+            <div className="coverflow-stage" id="coverflowStage">
               <div className="coverflow-track" id="coverflowTrack"></div>
               <div
                 className="coverflow-empty is-visible is-brand-only"
