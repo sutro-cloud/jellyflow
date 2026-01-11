@@ -320,12 +320,12 @@ button.icon {
   overflow: visible;
   border: none;
   padding: 0;
-  background: var(--cover-bg);
+  background: transparent;
+  transform-style: preserve-3d;
   transform: translate(-50%, -50%)
     translateX(calc(var(--offset) * 300px))
     translateZ(calc(var(--abs) * -190px))
     rotateY(calc(var(--offset) * -24deg));
-  box-shadow: 0 18px 40px var(--shadow);
   transition: transform 0.45s ease, box-shadow 0.45s ease, opacity 0.3s ease;
   cursor: pointer;
 }
@@ -335,7 +335,7 @@ button.icon {
 }
 
 .coverflow-item.is-active {
-  box-shadow: 0 24px 50px rgba(20, 20, 20, 0.2);
+  box-shadow: none;
 }
 
 .coverflow-card {
@@ -344,7 +344,13 @@ button.icon {
   height: 100%;
   z-index: 1;
   transform-style: preserve-3d;
-  transition: transform 0.6s ease;
+  background: var(--cover-bg);
+  box-shadow: 0 18px 40px var(--shadow);
+  transition: transform 0.6s ease, box-shadow 0.45s ease;
+}
+
+.coverflow-item.is-active .coverflow-card {
+  box-shadow: 0 24px 50px rgba(20, 20, 20, 0.2);
 }
 
 .coverflow-item.is-open .coverflow-card {
