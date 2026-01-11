@@ -25,6 +25,7 @@ import { loadPlaylists, playPlaylistTrack, setPlaylistView, syncPlaylistHighligh
 import { loadLyricsForTrack, maybeEstimateLyrics, syncLyrics } from "../modules/lyrics.js";
 import { onNowPlayingChange, playTrack, toggleAudioPlayback } from "../modules/playback.js";
 import { initAds } from "../modules/ads.js";
+import { setStatus } from "../modules/ui.js";
 
 function setupEvents() {
   dom.openSettings.addEventListener("click", () => {
@@ -106,6 +107,27 @@ function setupEvents() {
     const nextTheme = document.body.classList.contains("theme-dark") ? "light" : "dark";
     applyTheme(nextTheme);
   });
+  const setPlayerCollapsed = (isCollapsed) => {
+    if (!dom.playerFooter) {
+      return;
+    }
+    dom.playerFooter.classList.toggle("is-collapsed", isCollapsed);
+    if (dom.playerCollapse) {
+      dom.playerCollapse.setAttribute("aria-expanded", isCollapsed ? "false" : "true");
+      dom.playerCollapse.title = isCollapsed ? "Show player" : "Hide player";
+    }
+    if (dom.playerReveal) {
+      dom.playerReveal.setAttribute("aria-expanded", isCollapsed ? "false" : "true");
+      dom.playerReveal.title = isCollapsed ? "Show player" : "Hide player";
+    }
+  };
+  if (dom.playerCollapse) {
+    setPlayerCollapsed(false);
+    dom.playerCollapse.addEventListener("click", () => setPlayerCollapsed(true));
+  }
+  if (dom.playerReveal) {
+    dom.playerReveal.addEventListener("click", () => setPlayerCollapsed(false));
+  }
   dom.userSelect.addEventListener("change", (event) => {
     dom.userIdInput.value = event.target.value;
   });
@@ -125,6 +147,90 @@ function setupEvents() {
     },
     { passive: false }
   );
+  const swipeState = {
+    active: false,
+    axis: null,
+    startX: 0,
+    startY: 0,
+    stepCount: 0,
+  };
+  const SWIPE_LOCK_THRESHOLD = 8;
+  const SWIPE_STEP = 70;
+  const SWIPE_END_THRESHOLD = 24;
+  const shouldIgnoreCoverflowGesture = (target) =>
+    target &&
+    target.closest &&
+    (target.closest(".tracklist") || target.closest(".coverflow-back"));
+  const handleCoverflowTouchStart = (event) => {
+    if (event.touches && event.touches.length > 1) {
+      return;
+    }
+    if (shouldIgnoreCoverflowGesture(event.target)) {
+      return;
+    }
+    const touch = event.touches ? event.touches[0] : event;
+    swipeState.active = true;
+    swipeState.axis = null;
+    swipeState.startX = touch.clientX;
+    swipeState.startY = touch.clientY;
+    swipeState.stepCount = 0;
+  };
+  const handleCoverflowTouchMove = (event) => {
+    if (!swipeState.active) {
+      return;
+    }
+    if (event.touches && event.touches.length > 1) {
+      return;
+    }
+    const touch = event.touches ? event.touches[0] : event;
+    const deltaX = touch.clientX - swipeState.startX;
+    const deltaY = touch.clientY - swipeState.startY;
+    if (!swipeState.axis) {
+      if (
+        Math.abs(deltaX) < SWIPE_LOCK_THRESHOLD &&
+        Math.abs(deltaY) < SWIPE_LOCK_THRESHOLD
+      ) {
+        return;
+      }
+      swipeState.axis = Math.abs(deltaX) > Math.abs(deltaY) ? "x" : "y";
+    }
+    if (swipeState.axis !== "x") {
+      return;
+    }
+    event.preventDefault();
+    const nextStep = Math.trunc(deltaX / SWIPE_STEP);
+    const delta = nextStep - swipeState.stepCount;
+    if (delta === 0) {
+      return;
+    }
+    swipeState.stepCount = nextStep;
+    const stepDirection = delta > 0 ? -1 : 1;
+    for (let i = 0; i < Math.abs(delta); i += 1) {
+      moveActiveIndex(stepDirection);
+    }
+  };
+  const handleCoverflowTouchEnd = (event) => {
+    if (!swipeState.active) {
+      return;
+    }
+    if (swipeState.axis === "x" && swipeState.stepCount === 0) {
+      const touch = event.changedTouches ? event.changedTouches[0] : event;
+      const deltaX = touch.clientX - swipeState.startX;
+      if (Math.abs(deltaX) > SWIPE_END_THRESHOLD) {
+        moveActiveIndex(deltaX > 0 ? -1 : 1);
+      }
+    }
+    swipeState.active = false;
+    swipeState.axis = null;
+  };
+  dom.coverflowTrack.addEventListener("touchstart", handleCoverflowTouchStart, {
+    passive: true,
+  });
+  dom.coverflowTrack.addEventListener("touchmove", handleCoverflowTouchMove, {
+    passive: false,
+  });
+  dom.coverflowTrack.addEventListener("touchend", handleCoverflowTouchEnd);
+  dom.coverflowTrack.addEventListener("touchcancel", handleCoverflowTouchEnd);
   document.addEventListener("pointerdown", (event) => {
     if (!state.openAlbumId) {
       return;
@@ -331,7 +437,12 @@ export function initApp() {
   onNowPlayingChange(syncTrackHighlights);
   onNowPlayingChange(syncPlaylistHighlights);
 
-  if (dom.serverUrlInput.value && dom.apiKeyInput.value && dom.userIdInput.value) {
+  const hasSavedAuth = Boolean(
+    dom.serverUrlInput.value && dom.apiKeyInput.value && dom.userIdInput.value
+  );
+  if (hasSavedAuth) {
     connect();
+  } else {
+    setStatus("Disconnected", "idle");
   }
 }

@@ -34,16 +34,14 @@ export default function App() {
                   />
                   <div className="coverflow-empty-name">Jellyflow</div>
                 </div>
-                <div className="coverflow-empty-icon" id="coverflowEmptyIcon">&#128268;</div>
-                <div className="coverflow-empty-title" id="coverflowEmptyTitle">Connect to Jellyfin</div>
-                <div className="coverflow-empty-sub" id="coverflowEmptySub">
-                  Use the connect button below to sign in.
-                </div>
+                <div className="coverflow-empty-icon" id="coverflowEmptyIcon">&#9881;</div>
+                <div className="coverflow-empty-title" id="coverflowEmptyTitle"></div>
+                <div className="coverflow-empty-sub" id="coverflowEmptySub"></div>
               </div>
             </div>
           </div>
           <div className="album-meta" id="albumMeta">
-            <div className="album-line" id="albumLine">Connect to Jellyfin</div>
+            <div className="album-line" id="albumLine"></div>
             <div className="album-count" id="albumCount">0 albums</div>
           </div>
           <div className="lyrics-panel" id="lyricsPanel">
@@ -85,7 +83,7 @@ export default function App() {
         </section>
       </main>
 
-      <footer className="player">
+      <footer className="player" id="playerFooter">
         <div className="player-left">
           <div className="now-playing">
             <div
@@ -104,10 +102,10 @@ export default function App() {
                 className="control-icon"
                 id="openSettings"
                 type="button"
-                aria-label="Connect"
-                title="Connect"
+                aria-label="Settings"
+                title="Settings"
               >
-                &#128268;
+                &#9881;
               </button>
               <button
                 className="control-icon"
@@ -136,6 +134,15 @@ export default function App() {
               >
                 &#9776;
               </button>
+              <button
+                className="control-icon player-collapse"
+                id="playerCollapse"
+                type="button"
+                aria-label="Hide player controls"
+                aria-controls="playerFooter"
+                aria-expanded="true"
+                title="Hide player controls"
+              ></button>
             </div>
           </div>
           <div className="ad-slot" id="adSlot" aria-hidden="true"></div>
@@ -147,12 +154,19 @@ export default function App() {
               role="button"
               tabIndex={0}
               aria-label="Open connection settings"
-            >
-              Not connected
-            </div>
+            ></div>
           </div>
         </div>
         <audio id="audio" controls preload="auto"></audio>
+        <button
+          className="player-reveal"
+          id="playerReveal"
+          type="button"
+          aria-label="Show player controls"
+          aria-controls="playerFooter"
+          aria-expanded="true"
+          title="Show player controls"
+        ></button>
       </footer>
 
       <dialog id="settingsDialog">

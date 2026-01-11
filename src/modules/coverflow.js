@@ -340,7 +340,7 @@ export function focusActiveCover() {
 
 function updateAlbumMeta() {
   if (!state.albums.length) {
-    dom.albumLine.textContent = state.serverUrl ? "No albums found" : "Connect to Jellyfin";
+    dom.albumLine.textContent = state.serverUrl ? "No albums found" : "";
     updateAlbumCount();
     updateCoverflowEmpty();
     return;
@@ -378,9 +378,9 @@ function updateCoverflowEmpty() {
       dom.coverflowEmptySub.textContent = "Check your Jellyfin library settings.";
     }
   } else {
-    dom.coverflowEmptyIcon.textContent = "\ud83d\udd0c";
-    dom.coverflowEmptyTitle.textContent = "Connect to Jellyfin";
-    dom.coverflowEmptySub.textContent = "Use the connect button below to sign in.";
+    dom.coverflowEmptyIcon.textContent = "\u2699";
+    dom.coverflowEmptyTitle.textContent = "";
+    dom.coverflowEmptySub.textContent = "";
   }
   dom.coverflowEmpty.classList.add("is-visible");
 }

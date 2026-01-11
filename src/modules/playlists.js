@@ -118,7 +118,7 @@ function renderPlaylistTracks(playlistId) {
 
 export async function loadPlaylists() {
   if (!state.serverUrl || !state.apiKey || !state.userId) {
-    updatePlaylistStatus("Connect to Jellyfin");
+    updatePlaylistStatus("");
     return;
   }
   state.playlistsLoading = true;
