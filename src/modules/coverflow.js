@@ -7,6 +7,40 @@ import { createTrackButton, setStatus } from "./ui.js";
 import { playTrack, updateNowPlayingIdle } from "./playback.js";
 import { resetLyricsPanel } from "./lyrics.js";
 
+const isSafari =
+  typeof navigator !== "undefined" &&
+  /safari/i.test(navigator.userAgent) &&
+  !/chrome|crios|android/i.test(navigator.userAgent);
+const SAFARI_WILL_CHANGE_TIMEOUT = 450;
+const ALBUM_WINDOW_BUFFER = 3;
+const ALBUM_PREFETCH_THRESHOLD = 12;
+const MAX_LOADED_COUNT = ALBUM_PAGE_LIMIT * 2 + ALBUM_WINDOW_BUFFER * 2;
+let safariWillChangeBoost = false;
+let safariWillChangeTimer = null;
+
+function clearSafariNearClasses() {
+  if (!dom.coverflowTrack) {
+    return;
+  }
+  dom.coverflowTrack
+    .querySelectorAll(".coverflow-item.is-near")
+    .forEach((item) => item.classList.remove("is-near"));
+}
+
+function boostSafariWillChange() {
+  if (!isSafari) {
+    return;
+  }
+  safariWillChangeBoost = true;
+  if (safariWillChangeTimer) {
+    clearTimeout(safariWillChangeTimer);
+  }
+  safariWillChangeTimer = window.setTimeout(() => {
+    safariWillChangeBoost = false;
+    clearSafariNearClasses();
+  }, SAFARI_WILL_CHANGE_TIMEOUT);
+}
+
 function createCoverflowItem(album, index) {
   const item = document.createElement("div");
   item.className = "coverflow-item";
@@ -123,14 +157,147 @@ function appendCoverflowItems(albums, offset) {
   updateCoverflow();
 }
 
+function getWindowFetchStart() {
+  return Math.max(0, state.windowStartIndex - (state.windowOffset || 0));
+}
+
+function getWindowLength(startIndex) {
+  if (!state.albumTotal) {
+    return ALBUM_PAGE_LIMIT;
+  }
+  return Math.min(ALBUM_PAGE_LIMIT, Math.max(0, state.albumTotal - startIndex));
+}
+
+async function prefetchWindow(direction) {
+  if (state.isLoadingAlbums || !state.windowed || !state.albumTotal) {
+    return;
+  }
+  const fetchStart = getWindowFetchStart();
+  const fetchEnd = fetchStart + state.albums.length;
+  const loadToken = state.loadToken;
+  const token = ++state.prefetchToken;
+  if (direction === "ahead") {
+    if (state.isPrefetchingAhead) {
+      return;
+    }
+    const nextWindowStart = state.windowStartIndex + ALBUM_PAGE_LIMIT;
+    if (nextWindowStart >= state.albumTotal) {
+      return;
+    }
+    const desiredEnd = Math.min(
+      state.albumTotal,
+      nextWindowStart + getWindowLength(nextWindowStart)
+    );
+    if (fetchEnd >= desiredEnd) {
+      return;
+    }
+    const start = fetchEnd;
+    const limit = Math.min(ALBUM_PAGE_LIMIT, state.albumTotal - start);
+    if (limit <= 0) {
+      return;
+    }
+    state.isPrefetchingAhead = true;
+    try {
+      const data = await fetchAlbumsPage(start, limit);
+      if (token !== state.prefetchToken || loadToken !== state.loadToken) {
+        return;
+      }
+      const items = data.Items || [];
+      if (!items.length) {
+        return;
+      }
+      const offset = state.albums.length;
+      state.albums.push(...items);
+      appendCoverflowItems(items, offset);
+      if (state.albums.length > MAX_LOADED_COUNT && state.activeIndex >= ALBUM_PAGE_LIMIT) {
+        const fetchStart = getWindowFetchStart();
+        const excess = state.albums.length - MAX_LOADED_COUNT;
+        const trimCount = Math.min(ALBUM_PAGE_LIMIT, excess);
+        state.albums = state.albums.slice(trimCount);
+        state.activeIndex = Math.max(0, state.activeIndex - trimCount);
+        state.windowOffset = state.windowStartIndex - (fetchStart + trimCount);
+        renderCoverflow();
+        if (state.openAlbumId) {
+          ensureTracksForActive();
+        }
+      }
+    } finally {
+      if (token === state.prefetchToken) {
+        state.isPrefetchingAhead = false;
+      }
+    }
+    return;
+  }
+  if (state.isPrefetchingBehind) {
+    return;
+  }
+  const prevWindowStart = state.windowStartIndex - ALBUM_PAGE_LIMIT;
+  if (prevWindowStart < 0) {
+    return;
+  }
+  if (fetchStart <= prevWindowStart) {
+    return;
+  }
+  const start = Math.max(0, fetchStart - ALBUM_PAGE_LIMIT);
+  const limit = Math.min(ALBUM_PAGE_LIMIT, fetchStart - start);
+  if (limit <= 0) {
+    return;
+  }
+  state.isPrefetchingBehind = true;
+  try {
+    const data = await fetchAlbumsPage(start, limit);
+    if (token !== state.prefetchToken || loadToken !== state.loadToken) {
+      return;
+    }
+    const items = data.Items || [];
+    if (!items.length) {
+      return;
+    }
+    state.albums = [...items, ...state.albums];
+    state.activeIndex += items.length;
+    state.windowOffset += items.length;
+    if (state.albums.length > MAX_LOADED_COUNT) {
+      state.albums = state.albums.slice(0, MAX_LOADED_COUNT);
+    }
+    renderCoverflow();
+    if (state.openAlbumId) {
+      ensureTracksForActive();
+    }
+  } finally {
+    if (token === state.prefetchToken) {
+      state.isPrefetchingBehind = false;
+    }
+  }
+}
+
+function maybePrefetchWindow() {
+  if (!state.windowed || state.isLoadingAlbums || !state.albumTotal) {
+    return;
+  }
+  const activeAbs = getWindowFetchStart() + state.activeIndex;
+  const windowLength = getWindowLength(state.windowStartIndex);
+  const windowStart = state.windowStartIndex;
+  const windowEnd = windowStart + windowLength;
+  if (activeAbs >= windowEnd - ALBUM_PREFETCH_THRESHOLD) {
+    void prefetchWindow("ahead");
+  }
+  if (activeAbs <= windowStart + ALBUM_PREFETCH_THRESHOLD) {
+    void prefetchWindow("behind");
+  }
+}
+
 function updateAlbumCount() {
   if (state.windowed && state.albumTotal) {
     if (!state.albums.length) {
       dom.albumCount.textContent = `0 of ${state.albumTotal} albums`;
       return;
     }
+    const windowLength = Math.min(
+      ALBUM_PAGE_LIMIT,
+      Math.max(0, state.albumTotal - state.windowStartIndex)
+    );
     const start = Math.min(state.albumTotal, state.windowStartIndex + 1);
-    const end = Math.min(state.albumTotal, state.windowStartIndex + state.albums.length);
+    const end = Math.min(state.albumTotal, state.windowStartIndex + windowLength);
     dom.albumCount.textContent = `${start}-${end} of ${state.albumTotal} albums`;
     return;
   }
@@ -146,9 +313,12 @@ function updateCoverflow() {
   items.forEach((item, index) => {
     const offset = index - state.activeIndex;
     const absOffset = Math.abs(offset);
+    const nearRange = isSafari ? 1 : 2;
+    const shouldHintNear = absOffset <= nearRange && (!isSafari || safariWillChangeBoost);
     item.style.setProperty("--offset", offset.toString());
     item.style.setProperty("--abs", absOffset.toString());
     item.classList.toggle("is-active", index === state.activeIndex);
+    item.classList.toggle("is-near", shouldHintNear);
     const albumId = item.dataset.albumId;
     const isOpen = albumId && albumId === state.openAlbumId;
     item.classList.toggle("is-open", isOpen);
@@ -158,6 +328,7 @@ function updateCoverflow() {
   });
 
   updateAlbumMeta();
+  maybePrefetchWindow();
 }
 
 export function focusActiveCover() {
@@ -210,13 +381,30 @@ export function setActiveIndex(index) {
     return;
   }
   const clamped = Math.max(0, Math.min(state.albums.length - 1, index));
-  if (state.activeIndex !== clamped) {
+  const didChange = state.activeIndex !== clamped;
+  if (didChange) {
     state.openAlbumId = null;
     state.trackFocusIndex = null;
     state.trackFocusAlbumId = null;
     state.jumpToken += 1;
+    boostSafariWillChange();
   }
   state.activeIndex = clamped;
+  if (state.windowed && state.albumTotal) {
+    const fetchStart = getWindowFetchStart();
+    const activeAbs = fetchStart + state.activeIndex;
+    const maxStart = Math.max(0, state.albumTotal - ALBUM_PAGE_LIMIT);
+    const desiredStart = Math.min(
+      maxStart,
+      Math.floor(activeAbs / ALBUM_PAGE_LIMIT) * ALBUM_PAGE_LIMIT
+    );
+    const windowLength = getWindowLength(desiredStart);
+    const fetchEnd = fetchStart + state.albums.length;
+    if (fetchStart <= desiredStart && fetchEnd >= desiredStart + windowLength) {
+      state.windowStartIndex = desiredStart;
+      state.windowOffset = state.windowStartIndex - fetchStart;
+    }
+  }
   updateCoverflow();
   ensureTracksForActive();
 }
@@ -230,10 +418,12 @@ export function moveActiveIndex(direction) {
     focusActiveCover();
     return;
   }
+  const fetchStart = getWindowFetchStart();
+  const currentAbs = fetchStart + state.activeIndex;
   const nextIndex = state.activeIndex + direction;
   if (nextIndex < 0) {
-    if (state.windowStartIndex > 0) {
-      void shiftAlbumWindow(-1);
+    if (fetchStart > 0) {
+      void shiftAlbumWindow(-1, currentAbs - 1);
       return;
     }
     setActiveIndex(0);
@@ -241,9 +431,9 @@ export function moveActiveIndex(direction) {
     return;
   }
   if (nextIndex >= state.albums.length) {
-    const endIndex = state.windowStartIndex + state.albums.length;
+    const endIndex = fetchStart + state.albums.length;
     if (state.albumTotal && endIndex < state.albumTotal) {
-      void shiftAlbumWindow(1);
+      void shiftAlbumWindow(1, currentAbs + 1);
       return;
     }
     setActiveIndex(state.albums.length - 1);
@@ -254,7 +444,7 @@ export function moveActiveIndex(direction) {
   focusActiveCover();
 }
 
-async function shiftAlbumWindow(direction) {
+async function shiftAlbumWindow(direction, targetAbsIndex) {
   if (state.isLoadingAlbums) {
     return;
   }
@@ -267,19 +457,20 @@ async function shiftAlbumWindow(direction) {
     direction > 0
       ? Math.min(maxStart, state.windowStartIndex + ALBUM_PAGE_LIMIT)
       : Math.max(0, state.windowStartIndex - ALBUM_PAGE_LIMIT);
-  const focusIndex = direction > 0 ? 0 : ALBUM_PAGE_LIMIT - 1;
-  await loadAlbumWindow(start, focusIndex);
+  await loadAlbumWindow(start, 0, null, targetAbsIndex);
   focusActiveCover();
 }
 
-async function loadAlbumWindow(startIndex, focusIndex = 0, guard = null) {
+async function loadAlbumWindow(startIndex, focusIndex = 0, guard = null, focusAbsIndex = null) {
   const token = ++state.loadToken;
   state.isLoadingAlbums = true;
   state.openAlbumId = null;
   state.trackFocusIndex = null;
   state.trackFocusAlbumId = null;
   try {
-    const data = await fetchAlbumsPage(startIndex, ALBUM_PAGE_LIMIT);
+    const fetchStart = Math.max(0, startIndex - ALBUM_WINDOW_BUFFER);
+    const limit = ALBUM_PAGE_LIMIT * 2 + ALBUM_WINDOW_BUFFER * 2;
+    const data = await fetchAlbumsPage(fetchStart, limit);
     if (token !== state.loadToken) {
       return;
     }
@@ -294,7 +485,15 @@ async function loadAlbumWindow(startIndex, focusIndex = 0, guard = null) {
     state.albumTotal = data.TotalRecordCount || state.albumTotal;
     state.windowed = true;
     state.windowStartIndex = startIndex;
-    state.activeIndex = Math.max(0, Math.min(items.length - 1, focusIndex));
+    state.windowOffset = startIndex - fetchStart;
+    if (focusAbsIndex != null) {
+      const localIndex = focusAbsIndex - fetchStart;
+      state.activeIndex = Math.max(0, Math.min(items.length - 1, localIndex));
+    } else {
+      const localIndex = focusIndex + state.windowOffset;
+      state.activeIndex = Math.max(0, Math.min(items.length - 1, localIndex));
+    }
+    boostSafariWillChange();
     renderCoverflow();
   } catch (error) {
     if (state.albums.length) {
@@ -305,6 +504,9 @@ async function loadAlbumWindow(startIndex, focusIndex = 0, guard = null) {
   } finally {
     if (token === state.loadToken) {
       state.isLoadingAlbums = false;
+      void prefetchWindow("ahead");
+      void prefetchWindow("behind");
+      maybePrefetchWindow();
     }
   }
 }
@@ -403,85 +605,12 @@ export function syncTrackHighlights() {
 }
 
 export async function loadAlbumsPaginated() {
-  const token = ++state.loadToken;
-  state.isLoadingAlbums = true;
-  state.windowed = false;
-  state.windowStartIndex = 0;
   resetLibraryState();
   setStatus("Loading albums...", "info");
-
-  let startIndex = 0;
-  const limit = ALBUM_PAGE_LIMIT;
-  let total = null;
-  let hadError = false;
-
-  try {
-    while (true) {
-      if (total !== null && startIndex >= total) {
-        break;
-      }
-      const pageLimit = total ? Math.min(limit, total - startIndex) : limit;
-      let data;
-      try {
-        data = await fetchAlbumsPage(startIndex, pageLimit);
-      } catch (error) {
-        if (state.albums.length) {
-          hadError = true;
-          break;
-        }
-        throw error;
-      }
-
-      if (token !== state.loadToken) {
-        return;
-      }
-
-      const items = data.Items || [];
-      if (total === null) {
-        total = data.TotalRecordCount || items.length;
-        state.albumTotal = total;
-      }
-
-      if (!items.length) {
-        break;
-      }
-
-      const offset = state.albums.length;
-      state.albums.push(...items);
-
-      if (offset === 0) {
-        renderCoverflow();
-        ensureTracksForActive();
-      } else {
-        appendCoverflowItems(items, offset);
-      }
-      maybeApplyTypeahead();
-
-      updateAlbumCount();
-      if (state.albumTotal) {
-        setStatus(`Loading albums ${state.albums.length}/${state.albumTotal}`, "info");
-      }
-      startIndex += items.length;
-
-      if (items.length < pageLimit) {
-        break;
-      }
-    }
-
-    if (hadError) {
-      setStatus(`Loaded ${state.albums.length} albums`, "ok");
-    } else {
-      setStatus("Connected", "ok");
-    }
+  await loadAlbumWindow(0, 0);
+  if (state.albums.length) {
+    setStatus("Connected", "ok");
     updateNowPlayingIdle();
-  } catch (error) {
-    if (!state.albums.length) {
-      setStatus("Albums failed to load", "warn");
-    }
-  } finally {
-    if (token === state.loadToken) {
-      state.isLoadingAlbums = false;
-    }
   }
 }
 
@@ -491,6 +620,10 @@ function resetLibraryState() {
   state.albumTotal = 0;
   state.windowed = false;
   state.windowStartIndex = 0;
+  state.windowOffset = 0;
+  state.prefetchToken += 1;
+  state.isPrefetchingAhead = false;
+  state.isPrefetchingBehind = false;
   state.openAlbumId = null;
   state.currentTrack = null;
   state.currentAlbum = null;
@@ -730,7 +863,8 @@ async function fetchAlbumAtIndex(index) {
     return null;
   }
   if (state.windowed) {
-    const localIndex = index - state.windowStartIndex;
+    const fetchStart = getWindowFetchStart();
+    const localIndex = index - fetchStart;
     if (localIndex >= 0 && localIndex < state.albums.length) {
       return state.albums[localIndex];
     }
@@ -872,9 +1006,10 @@ export async function jumpToAlbumById(albumId) {
       return;
     }
     if (!foundAtBase && state.albums.length) {
+      const fetchStart = getWindowFetchStart();
       const fallbackIndex = Math.max(
         0,
-        Math.min(state.albums.length - 1, baseIndex - state.windowStartIndex)
+        Math.min(state.albums.length - 1, baseIndex - fetchStart)
       );
       setActiveIndex(fallbackIndex);
       focusActiveCover();

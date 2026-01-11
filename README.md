@@ -1,6 +1,6 @@
 # Jellyflow
 
-A modern, coverflow-inspired Jellyfin music browser and player.
+A modern, coverflow-inspired Jellyfin music browser and player built with React + Vite.
 
 ## Requirements
 
@@ -15,15 +15,22 @@ A modern, coverflow-inspired Jellyfin music browser and player.
    npm install
    ```
 
-2. Start the server:
+2. Start the dev server:
 
    ```bash
-   npm start
+   npm run dev
    ```
 
 3. Open the app:
 
    - http://localhost:3000
+
+## Production build
+
+```bash
+npm run build
+npm run preview
+```
 
 ## Connect to Jellyfin
 
@@ -37,14 +44,6 @@ A modern, coverflow-inspired Jellyfin music browser and player.
 - If your Jellyfin server blocks requests from this origin, enable CORS for `http://localhost:3000` in Jellyfin or your reverse proxy.
 - Album art and audio stream directly from your Jellyfin server using your API key.
 - Optional: enable “Fetch lyrics from LRCLIB (online)” in the connection dialog to load lyrics on the fly.
-
-## Alternative (no Node)
-
-You can also run a simple static server with Python:
-
-```bash
-python3 -m http.server 3000
-```
 
 ## Contributing
 

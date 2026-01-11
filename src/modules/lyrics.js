@@ -1,5 +1,6 @@
 import { dom } from "./dom.js";
 import { state } from "./state.js";
+import { fetchJson } from "./api.js";
 import { albumArtist, albumTitle } from "./music.js";
 import { normalizeStartValue, parseTimeToSeconds, ticksToSeconds } from "./utils.js";
 
@@ -235,11 +236,9 @@ function setLyricsLines(lines, mode, pendingLines = null, statusLabel = null) {
     div.textContent = line.text;
     dom.lyricsTrack.appendChild(div);
   });
+
   state.lyricsLineEls = Array.from(dom.lyricsTrack.children);
-  if (mode === "static" && state.lyricsLineEls[0]) {
-    state.lyricsLineEls[0].classList.add("is-active");
-    state.lyrics.activeIndex = 0;
-  }
+
   if (mode === "timed") {
     updateLyricsStatus(statusLabel || "Synced lyrics");
   } else if (mode === "estimated") {
@@ -250,66 +249,59 @@ function setLyricsLines(lines, mode, pendingLines = null, statusLabel = null) {
   syncLyrics(true);
 }
 
-function findActiveLyricIndex(lines, time) {
-  if (!lines.length) {
-    return -1;
-  }
-  let low = 0;
-  let high = lines.length - 1;
-  let result = 0;
-  while (low <= high) {
-    const mid = Math.floor((low + high) / 2);
-    if (lines[mid].time <= time) {
-      result = mid;
-      low = mid + 1;
-    } else {
-      high = mid - 1;
-    }
-  }
-  return result;
-}
-
 export function syncLyrics(force = false) {
-  if (!state.lyrics.lines.length) {
-    return;
-  }
-  if (state.lyrics.mode === "static") {
+  if (!state.currentTrack || !state.lyrics.lines.length) {
     return;
   }
   const currentTime = dom.audio.currentTime;
   if (!Number.isFinite(currentTime)) {
     return;
   }
-  const index = findActiveLyricIndex(state.lyrics.lines, currentTime);
-  if (index < 0 || (index === state.lyrics.activeIndex && !force)) {
+  const lines = state.lyrics.lines;
+  let index = state.lyrics.activeIndex;
+  if (
+    force ||
+    index < 0 ||
+    currentTime < lines[index]?.time ||
+    currentTime > lines[index + 1]?.time
+  ) {
+    index = lines.findIndex((line, i) => {
+      const next = lines[i + 1];
+      if (line.time == null) {
+        return false;
+      }
+      if (!next || next.time == null) {
+        return currentTime >= line.time;
+      }
+      return currentTime >= line.time && currentTime < next.time;
+    });
+  }
+  if (index === -1) {
     return;
   }
-  const prev = state.lyrics.activeIndex;
-  if (prev >= 0 && state.lyricsLineEls[prev]) {
-    state.lyricsLineEls[prev].classList.remove("is-active");
-  }
-  state.lyricsLineEls.forEach((line) => line.classList.remove("is-next"));
-  const active = state.lyricsLineEls[index];
-  if (active) {
-    active.classList.add("is-active");
-  }
-  const next = state.lyricsLineEls[index + 1];
-  if (next) {
-    next.classList.add("is-next");
+  if (!force && index === state.lyrics.activeIndex) {
+    return;
   }
   state.lyrics.activeIndex = index;
   scrollLyricsTo(index);
 }
 
 function scrollLyricsTo(index) {
-  const line = state.lyricsLineEls[index];
-  if (!line) {
+  const lines = state.lyricsLineEls;
+  if (!lines.length) {
     return;
   }
-  const viewportHeight = dom.lyricsViewport.clientHeight;
-  const offset = line.offsetTop + line.offsetHeight / 2 - viewportHeight / 2;
-  const maxOffset = Math.max(0, dom.lyricsTrack.scrollHeight - viewportHeight);
-  const clamped = Math.max(0, Math.min(offset, maxOffset));
+  lines.forEach((line, lineIndex) => {
+    line.classList.toggle("is-active", lineIndex === index);
+    line.classList.toggle("is-next", lineIndex === index + 1);
+  });
+  const active = lines[index];
+  if (!active) {
+    return;
+  }
+  const offset =
+    active.offsetTop - dom.lyricsViewport.clientHeight / 2 + active.offsetHeight / 2;
+  const clamped = Math.max(0, Math.min(dom.lyricsTrack.scrollHeight, offset));
   dom.lyricsTrack.style.transform = `translateY(${-clamped}px)`;
 }
 
@@ -334,15 +326,10 @@ async function requestLyricsPayload(trackId) {
     `/Items/${trackId}/Lyrics`,
   ];
   for (const endpoint of endpoints) {
-    const url = `${state.serverUrl}${endpoint}?api_key=${state.apiKey}`;
-    const response = await fetch(url, {
-      headers: { "X-Emby-Token": state.apiKey },
-    });
-    if (response.ok) {
-      return response.text();
-    }
-    if (response.status !== 404) {
-      return null;
+    try {
+      return await fetchJson(endpoint);
+    } catch (error) {
+      // Try next endpoint.
     }
   }
   return null;
@@ -354,10 +341,6 @@ export async function loadLyricsForTrack(track, album) {
   }
   const token = ++state.lyricsToken;
   state.lyrics.trackId = track.Id;
-  state.lyrics.lines = [];
-  state.lyrics.mode = "loading";
-  state.lyrics.activeIndex = -1;
-  state.lyrics.pendingLines = null;
   updateLyricsStatus("Loading lyrics...");
   renderLyricsPlaceholder("Loading lyrics...");
 
@@ -376,67 +359,47 @@ export async function loadLyricsForTrack(track, album) {
     payload = track.Lyrics;
   }
 
-  const parsed = parseLyricsPayload(payload);
-  if (parsed.lines.length) {
+  if (payload) {
+    const parsed = parseLyricsPayload(payload);
+    const lines = parsed.lines.filter((line) => line.text);
     if (parsed.hasTimestamps) {
-      const lines = parsed.lines
-        .filter((line) => line.time != null && line.text)
-        .sort((a, b) => a.time - b.time);
       setLyricsLines(lines, "timed");
       return;
     }
-    const cleanLines = parsed.lines
-      .filter((line) => line.text)
-      .map((line) => ({ text: line.text }));
-    const duration = getTrackDurationSeconds(track);
-    if (duration) {
-      const lines = applyEstimatedTimings(cleanLines, duration);
-      setLyricsLines(lines, "estimated");
+    if (lines.length) {
+      const cleanLines = lines.map((line) => ({ time: null, text: line.text }));
+      setLyricsLines(cleanLines, "static", cleanLines);
+      updateLyricsStatus("Lyrics (timing unknown)");
       return;
     }
-    setLyricsLines(
-      cleanLines.map((line) => ({ time: null, text: line.text })),
-      "static",
-      cleanLines
-    );
-    updateLyricsStatus("Lyrics (timing unknown)");
-    return;
+    setLyricsLines([], "none");
+  }
+
+  const cacheKey = makeLyricsCacheKey(track, album);
+  const cached = cacheKey ? getCachedLyrics(cacheKey) : null;
+  if (cached) {
+    const cachedParsed = parseLyricsPayload(cached);
+    const lines = cachedParsed.lines.filter((line) => line.text);
+    if (cachedParsed.hasTimestamps) {
+      setLyricsLines(lines, "timed", null, "Lyrics via LRCLIB");
+      return;
+    }
+    if (lines.length) {
+      const cleanLines = lines.map((line) => ({ time: null, text: line.text }));
+      if (dom.audio.duration && state.lyrics.mode !== "timed") {
+        const estimated = applyEstimatedTimings(cleanLines, dom.audio.duration);
+        setLyricsLines(estimated, "estimated", cleanLines, "Lyrics via LRCLIB");
+      } else {
+        setLyricsLines(cleanLines, "static", cleanLines, "Lyrics via LRCLIB");
+      }
+      return;
+    }
   }
 
   if (!state.lyricsOnline) {
     setLyricsLines([], "none");
+    updateLyricsStatus("No lyrics found");
     return;
-  }
-
-  const cacheKey = makeLyricsCacheKey(track, album);
-  const cached = getCachedLyrics(cacheKey);
-  if (cached) {
-    const cachedParsed = parseLyricsPayload(cached);
-    if (cachedParsed.lines.length) {
-      if (cachedParsed.hasTimestamps) {
-        const lines = cachedParsed.lines
-          .filter((line) => line.time != null && line.text)
-          .sort((a, b) => a.time - b.time);
-        setLyricsLines(lines, "timed", null, "Lyrics via LRCLIB");
-        return;
-      }
-      const cleanLines = cachedParsed.lines
-        .filter((line) => line.text)
-        .map((line) => ({ text: line.text }));
-      const duration = getTrackDurationSeconds(track);
-      if (duration) {
-        const lines = applyEstimatedTimings(cleanLines, duration);
-        setLyricsLines(lines, "estimated", null, "Lyrics via LRCLIB");
-        return;
-      }
-      setLyricsLines(
-        cleanLines.map((line) => ({ time: null, text: line.text })),
-        "static",
-        cleanLines,
-        "Lyrics via LRCLIB"
-      );
-      return;
-    }
   }
 
   updateLyricsStatus("Fetching lyrics online...");
@@ -452,34 +415,24 @@ export async function loadLyricsForTrack(track, album) {
     setLyricsLines([], "none", null, "Instrumental");
     return;
   }
-
   const externalPayload = external.syncedLyrics || external.plainLyrics || "";
   const externalParsed = parseLyricsPayload(externalPayload);
-  cacheLyrics(cacheKey, externalPayload);
-
-  if (externalParsed.lines.length) {
-    if (externalParsed.hasTimestamps) {
-      const lines = externalParsed.lines
-        .filter((line) => line.time != null && line.text)
-        .sort((a, b) => a.time - b.time);
-      setLyricsLines(lines, "timed", null, "Lyrics via LRCLIB");
-      return;
+  if (cacheKey) {
+    cacheLyrics(cacheKey, externalPayload);
+  }
+  const lines = externalParsed.lines.filter((line) => line.text);
+  if (externalParsed.hasTimestamps) {
+    setLyricsLines(lines, "timed", null, "Lyrics via LRCLIB");
+    return;
+  }
+  if (lines.length) {
+    const cleanLines = lines.map((line) => ({ time: null, text: line.text }));
+    if (dom.audio.duration && state.lyrics.mode !== "timed") {
+      const estimated = applyEstimatedTimings(cleanLines, dom.audio.duration);
+      setLyricsLines(estimated, "estimated", cleanLines, "Lyrics via LRCLIB");
+    } else {
+      setLyricsLines(cleanLines, "static", cleanLines, "Lyrics via LRCLIB");
     }
-    const cleanLines = externalParsed.lines
-      .filter((line) => line.text)
-      .map((line) => ({ text: line.text }));
-    const duration = getTrackDurationSeconds(track);
-    if (duration) {
-      const lines = applyEstimatedTimings(cleanLines, duration);
-      setLyricsLines(lines, "estimated", null, "Lyrics via LRCLIB");
-      return;
-    }
-    setLyricsLines(
-      cleanLines.map((line) => ({ time: null, text: line.text })),
-      "static",
-      cleanLines,
-      "Lyrics via LRCLIB"
-    );
     return;
   }
   setLyricsLines([], "none");

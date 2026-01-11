@@ -119,6 +119,7 @@ body::before {
   background: var(--ghost);
   color: var(--muted);
   justify-self: start;
+  cursor: pointer;
 }
 
 .status[data-tone="ok"] {
@@ -148,13 +149,13 @@ button.icon {
   cursor: pointer;
   padding: 10px 18px;
   font-weight: 600;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease;
 }
 
 button.ghost {
   background: var(--panel);
   color: var(--ink);
-  box-shadow: 0 6px 20px var(--shadow);
+  box-shadow: none;
 }
 
 button.ghost.is-active {
@@ -164,13 +165,13 @@ button.ghost.is-active {
 
 button.ghost:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 24px var(--shadow-strong);
+  box-shadow: none;
 }
 
 button.primary {
   background: var(--accent);
   color: #fff;
-  box-shadow: 0 10px 24px rgba(240, 93, 94, 0.3);
+  box-shadow: none;
 }
 
 button.primary:disabled {
@@ -221,7 +222,7 @@ button.icon {
   border: 1px solid var(--field-border);
   background: var(--ghost);
   color: var(--muted);
-  box-shadow: 0 10px 20px var(--shadow);
+  box-shadow: none;
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -246,7 +247,7 @@ body.is-lyrics-open .lyrics-toggle {
   color: #fff;
   border-color: var(--selection);
   background: var(--selection);
-  box-shadow: 0 0 0 2px rgba(47, 109, 246, 0.35), 0 12px 24px rgba(47, 109, 246, 0.4);
+  box-shadow: 0 0 0 2px rgba(47, 109, 246, 0.35);
   transform: translateY(-1px) scale(1.05);
 }
 
@@ -254,7 +255,7 @@ body.is-playlist-open .playlist-toggle {
   color: #fff;
   border-color: var(--selection);
   background: var(--selection);
-  box-shadow: 0 0 0 2px rgba(47, 109, 246, 0.35), 0 12px 24px rgba(47, 109, 246, 0.4);
+  box-shadow: 0 0 0 2px rgba(47, 109, 246, 0.35);
   transform: translateY(-1px) scale(1.05);
 }
 
@@ -289,6 +290,8 @@ body.is-playlist-open .playlist-toggle::after {
   perspective: 1400px;
   perspective-origin: center;
   overflow: visible;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
 }
 
 .coverflow-empty {
@@ -319,7 +322,7 @@ body.is-playlist-open .playlist-toggle::after {
   place-items: center;
   font-size: 1.2rem;
   color: var(--ink);
-  box-shadow: 0 12px 24px var(--shadow);
+  box-shadow: none;
 }
 
 .coverflow-empty-title {
@@ -336,6 +339,7 @@ body.is-playlist-open .playlist-toggle::after {
   position: absolute;
   inset: 0;
   transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
 }
 
 .coverflow-item {
@@ -343,6 +347,9 @@ body.is-playlist-open .playlist-toggle::after {
   top: 50%;
   left: 50%;
   --cover-size: 420px;
+  --cover-spacing: 300px;
+  --cover-depth: -190px;
+  --cover-tilt: -24deg;
   --reflection-gap: 3px;
   --reflection-height: 110px;
   width: var(--cover-size);
@@ -353,12 +360,18 @@ body.is-playlist-open .playlist-toggle::after {
   padding: 0;
   background: transparent;
   transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
   transform: translate(-50%, -50%)
-    translateX(calc(var(--offset) * 300px))
-    translateZ(calc(var(--abs) * -190px))
-    rotateY(calc(var(--offset) * -24deg));
-  transition: transform 0.45s ease, box-shadow 0.45s ease, opacity 0.3s ease;
+    translateX(calc(var(--offset) * var(--cover-spacing)))
+    translateZ(calc(var(--abs) * var(--cover-depth)))
+    rotateY(calc(var(--offset) * var(--cover-tilt)));
+  transition: transform 0.45s ease, opacity 0.3s ease;
   cursor: pointer;
+}
+
+.coverflow-item.is-active,
+.coverflow-item.is-near {
+  will-change: transform;
 }
 
 .coverflow-item:focus-visible {
@@ -375,23 +388,27 @@ body.is-playlist-open .playlist-toggle::after {
   height: 100%;
   z-index: 1;
   transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+  transform: translateZ(0);
   background: var(--cover-bg);
-  box-shadow: 0 18px 40px var(--shadow);
-  transition: transform 0.6s ease, box-shadow 0.45s ease;
+  box-shadow: none;
+  transition: transform 0.6s ease;
 }
 
 .coverflow-item.is-active .coverflow-card {
-  box-shadow: 0 24px 50px rgba(20, 20, 20, 0.2);
+  box-shadow: none;
 }
 
 .coverflow-item.is-open .coverflow-card {
-  transform: rotateY(180deg);
+  transform: translateZ(0) rotateY(180deg);
 }
 
 .coverflow-face {
   position: absolute;
   inset: 0;
   backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
   border-radius: 0;
   overflow: visible;
 }
@@ -412,6 +429,46 @@ body.is-playlist-open .playlist-toggle::after {
       rgba(0, 0, 0, 0.5) 100%,
       rgba(0, 0, 0, 0) 100%
     );
+}
+
+@supports (-webkit-touch-callout: none) {
+  .coverflow-track {
+    transform-style: flat;
+    -webkit-transform-style: flat;
+  }
+
+  .coverflow-item {
+    --cover-size: 340px;
+    --cover-spacing: 220px;
+    --cover-depth: -130px;
+    --cover-tilt: -20deg;
+    transform-style: flat;
+    -webkit-transform-style: flat;
+  }
+
+  .coverflow-card {
+    box-shadow: none;
+    transform: none;
+  }
+
+  .coverflow-item.is-active .coverflow-card {
+    box-shadow: none;
+  }
+
+  .coverflow-item.is-open .coverflow-card {
+    transform: rotateY(180deg);
+  }
+
+  .coverflow-face {
+    transform: none;
+  }
+
+  .lyrics-panel,
+  .playlist-panel,
+  dialog,
+  .typeahead {
+    box-shadow: none;
+  }
 }
 
 .coverflow-front img {
@@ -487,7 +544,7 @@ body.is-playlist-open .playlist-toggle::after {
   display: grid;
   grid-template-rows: auto 1fr;
   gap: 10px;
-  box-shadow: 0 16px 40px var(--shadow);
+  box-shadow: none;
   position: absolute;
   top: 16px;
   right: 16px;
@@ -500,7 +557,7 @@ body.is-playlist-open .playlist-toggle::after {
   opacity: 0;
   transform: translateX(110%);
   pointer-events: none;
-  transition: opacity 0.3s ease, transform 0.35s ease, box-shadow 0.3s ease;
+  transition: opacity 0.3s ease, transform 0.35s ease;
   z-index: 3;
 }
 
@@ -578,7 +635,7 @@ body.is-playlist-open .playlist-toggle::after {
   display: grid;
   grid-template-rows: auto 1fr;
   gap: 10px;
-  box-shadow: 0 16px 40px var(--shadow);
+  box-shadow: none;
   position: absolute;
   top: 16px;
   right: 16px;
@@ -591,7 +648,7 @@ body.is-playlist-open .playlist-toggle::after {
   opacity: 0;
   transform: translateX(110%);
   pointer-events: none;
-  transition: opacity 0.3s ease, transform 0.35s ease, box-shadow 0.3s ease;
+  transition: opacity 0.3s ease, transform 0.35s ease;
   z-index: 3;
 }
 
@@ -667,7 +724,7 @@ body.is-playlist-open .playlist-toggle::after {
   height: 64px;
   border-radius: 14px;
   background: var(--panel-chip);
-  box-shadow: 0 10px 24px var(--shadow);
+  box-shadow: none;
   cursor: pointer;
   border: 1px solid transparent;
   text-align: left;
@@ -762,7 +819,7 @@ body.is-playlist-open .playlist-toggle::after {
   padding: 10px 12px;
   border-radius: 14px;
   background: var(--panel-chip);
-  box-shadow: 0 10px 24px var(--shadow);
+  box-shadow: none;
   cursor: pointer;
   border: none;
   text-align: left;
@@ -788,7 +845,7 @@ body.is-playlist-open .playlist-toggle::after {
 
 .track.is-playing {
   background: rgba(31, 157, 139, 0.12);
-  box-shadow: 0 10px 24px rgba(31, 157, 139, 0.2);
+  box-shadow: none;
 }
 
 .empty {
@@ -839,7 +896,7 @@ body.is-playlist-open .playlist-toggle::after {
   height: 54px;
   border-radius: 14px;
   background: var(--placeholder-gradient);
-  box-shadow: 0 12px 30px var(--shadow);
+  box-shadow: none;
   background-size: cover;
   background-position: center;
   cursor: pointer;
@@ -883,7 +940,7 @@ dialog {
   width: min(520px, 90vw);
   background: var(--panel);
   color: var(--ink);
-  box-shadow: 0 30px 70px var(--shadow-strong);
+  box-shadow: none;
 }
 
 dialog::backdrop {
@@ -1016,7 +1073,7 @@ dialog::backdrop {
   background: var(--panel-veil-strong);
   padding: 10px 18px;
   border-radius: 16px;
-  box-shadow: 0 20px 40px var(--shadow-strong);
+  box-shadow: none;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s ease, transform 0.3s ease;
@@ -1047,10 +1104,18 @@ dialog::backdrop {
   .coverflow-item {
     --cover-size: 260px;
     --reflection-height: 70px;
-    transform: translate(-50%, -50%)
-      translateX(calc(var(--offset) * 170px))
-      translateZ(calc(var(--abs) * -95px))
-      rotateY(calc(var(--offset) * -24deg));
+    --cover-spacing: 170px;
+    --cover-depth: -95px;
+    --cover-tilt: -24deg;
+  }
+
+  @supports (-webkit-touch-callout: none) {
+    .coverflow-item {
+      --cover-size: 210px;
+      --cover-spacing: 120px;
+      --cover-depth: -70px;
+      --cover-tilt: -20deg;
+    }
   }
 
   .coverflow-section {
@@ -1066,9 +1131,17 @@ dialog::backdrop {
   .coverflow-item {
     --cover-size: 500px;
     --reflection-height: 140px;
-    transform: translate(-50%, -50%)
-      translateX(calc(var(--offset) * 360px))
-      translateZ(calc(var(--abs) * -230px))
-      rotateY(calc(var(--offset) * -24deg));
+    --cover-spacing: 360px;
+    --cover-depth: -230px;
+    --cover-tilt: -24deg;
+  }
+
+  @supports (-webkit-touch-callout: none) {
+    .coverflow-item {
+      --cover-size: 420px;
+      --cover-spacing: 260px;
+      --cover-depth: -170px;
+      --cover-tilt: -20deg;
+    }
   }
 }

@@ -1,23 +1,24 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-This is a small static web app with a thin Node server. Key files:
-- `index.html` holds the app markup and UI skeleton.
-- `styles.css` contains the global theme, layout, and animations.
-- `app.js` is the module entry point that wires UI events.
-- `modules/` contains feature-focused ES modules (coverflow, lyrics, playlists, playback).
-- `server.js` is an Express server that serves static assets and the SPA fallback.
-- `package.json` defines the Node runtime and dependencies.
+This is a React + Vite app with feature modules. Key files:
+- `index.html` is the Vite entry shell.
+- `src/App.jsx` holds the app markup and UI skeleton.
+- `src/app/initApp.js` wires event listeners and bootstraps behavior.
+- `src/modules/` contains feature-focused ES modules (coverflow, lyrics, playlists, playback).
+- `src/styles.css` contains the global theme, layout, and animations.
+- `package.json` defines scripts and dependencies.
 
 ## Build, Test, and Development Commands
-- `npm install` installs Express and locks dependencies.
-- `npm start` runs `node server.js` and serves the app at `http://localhost:3000`.
-- `python3 -m http.server 3000` serves the static files without Express headers or SPA fallback.
+- `npm install` installs React/Vite dependencies.
+- `npm run dev` starts the Vite dev server at `http://localhost:3000`.
+- `npm run build` outputs the production build to `dist/`.
+- `npm run preview` serves the production build locally.
 
 ## Coding Style & Naming Conventions
 - Indentation is 2 spaces; use semicolons and double quotes in JavaScript.
 - Prefer `const` and `let`; avoid `var`.
-- DOM element IDs in `index.html` are camelCase and mirrored in `app.js`.
+- DOM element IDs in `src/App.jsx` are camelCase and mirrored in `src/app/initApp.js`.
 - CSS classes and custom properties use kebab-case (example: `.coverflow-section`, `--panel-veil`).
 
 ## Testing Guidelines
@@ -32,6 +33,6 @@ For pull requests, include a clear summary, steps to verify, and screenshots or 
 
 ## Configuration & Security Tips
 - Requires Node 18+ and a reachable Jellyfin server.
-- Set `PORT` to change the local server port.
+- Change ports via `vite.config.js` if needed.
 - Do not commit Jellyfin credentials or API keys; they are stored locally in the browser.
 - If the Jellyfin server blocks the app, enable CORS for `http://localhost:3000`.

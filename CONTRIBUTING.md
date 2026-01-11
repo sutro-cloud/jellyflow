@@ -1,24 +1,24 @@
 # Contributing to Jellyflow
 
-Thanks for taking the time to contribute. This project is a small, static web app with a thin
-Express server, so changes are usually focused on `index.html`, `styles.css`, and `app.js`.
+Thanks for taking the time to contribute. This project is a React + Vite app, so changes are
+usually focused on `src/App.jsx`, `src/styles.css`, and the modules in `src/modules/`.
 
 ## Setup
 - Install dependencies: `npm install`
-- Run the app: `npm start` (serves at `http://localhost:3000`)
-- Static server alternative: `python3 -m http.server 3000` (no Express headers)
+- Run the app: `npm run dev` (serves at `http://localhost:3000`)
+- Production build: `npm run build` and `npm run preview`
 
 ## Project Structure
-- `index.html`: main markup and UI skeleton.
-- `styles.css`: global theme, layout, and animations.
-- `app.js`: module entry point and event wiring.
-- `modules/`: feature modules for API, coverflow, lyrics, playlists, and playback.
-- `server.js`: Express static server and SPA fallback.
+- `index.html`: Vite entry shell.
+- `src/App.jsx`: main markup and UI skeleton.
+- `src/styles.css`: global theme, layout, and animations.
+- `src/app/initApp.js`: module entry point and event wiring.
+- `src/modules/`: feature modules for API, coverflow, lyrics, playlists, and playback.
 
 ## Coding Style
 - Use 2-space indentation and double quotes in JavaScript.
 - Prefer `const`/`let`; avoid `var`.
-- Keep DOM IDs camelCase and match them in `app.js`.
+- Keep DOM IDs camelCase and match them in `src/app/initApp.js`.
 - CSS uses kebab-case for classes and custom properties.
 
 ## Testing

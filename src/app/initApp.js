@@ -1,8 +1,8 @@
-import { dom } from "./modules/dom.js";
-import { state } from "./modules/state.js";
-import { loadSettings, loadPreferences, savePreferences } from "./modules/storage.js";
-import { applyTheme, initTheme } from "./modules/theme.js";
-import { connect, loadUsers, resetForm } from "./modules/connection.js";
+import { dom } from "../modules/dom.js";
+import { state } from "../modules/state.js";
+import { loadSettings, loadPreferences, savePreferences } from "../modules/storage.js";
+import { applyTheme, initTheme } from "../modules/theme.js";
+import { connect, loadUsers, resetForm } from "../modules/connection.js";
 import {
   clearTypeahead,
   clearTypeaheadLookup,
@@ -20,10 +20,10 @@ import {
   showTypeahead,
   toggleOpenForActive,
   syncTrackHighlights,
-} from "./modules/coverflow.js";
-import { loadPlaylists, playPlaylistTrack, setPlaylistView, syncPlaylistHighlights } from "./modules/playlists.js";
-import { loadLyricsForTrack, maybeEstimateLyrics, syncLyrics } from "./modules/lyrics.js";
-import { onNowPlayingChange, playTrack, toggleAudioPlayback } from "./modules/playback.js";
+} from "../modules/coverflow.js";
+import { loadPlaylists, playPlaylistTrack, setPlaylistView, syncPlaylistHighlights } from "../modules/playlists.js";
+import { loadLyricsForTrack, maybeEstimateLyrics, syncLyrics } from "../modules/lyrics.js";
+import { onNowPlayingChange, playTrack, toggleAudioPlayback } from "../modules/playback.js";
 
 function setupEvents() {
   dom.openSettings.addEventListener("click", () => {
@@ -69,6 +69,27 @@ function setupEvents() {
   dom.closeSettings.addEventListener("click", () => {
     dom.settingsDialog.close();
   });
+  dom.settingsDialog.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") {
+      return;
+    }
+    const target = event.target;
+    if (target && (target.tagName === "INPUT" || target.tagName === "SELECT")) {
+      event.preventDefault();
+      void connect();
+    }
+  });
+  if (dom.status) {
+    dom.status.addEventListener("click", () => {
+      dom.settingsDialog.showModal();
+    });
+    dom.status.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        dom.settingsDialog.showModal();
+      }
+    });
+  }
   dom.loadUsersBtn.addEventListener("click", loadUsers);
   dom.connectBtn.addEventListener("click", connect);
   dom.resetBtn.addEventListener("click", resetForm);
@@ -289,14 +310,16 @@ function setupEvents() {
   });
 }
 
-loadSettings();
-loadPreferences();
-initTheme();
-setupEvents();
+export function initApp() {
+  loadSettings();
+  loadPreferences();
+  initTheme();
+  setupEvents();
 
-onNowPlayingChange(syncTrackHighlights);
-onNowPlayingChange(syncPlaylistHighlights);
+  onNowPlayingChange(syncTrackHighlights);
+  onNowPlayingChange(syncPlaylistHighlights);
 
-if (dom.serverUrlInput.value && dom.apiKeyInput.value && dom.userIdInput.value) {
-  connect();
+  if (dom.serverUrlInput.value && dom.apiKeyInput.value && dom.userIdInput.value) {
+    connect();
+  }
 }
