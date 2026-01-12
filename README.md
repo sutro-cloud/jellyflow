@@ -65,11 +65,13 @@ VITE_ADS_ENABLED=true
 VITE_ADS_PROVIDER=adsense
 VITE_ADS_CLIENT=ca-pub-xxxxxxxxxxxxxxxx
 VITE_ADS_SLOT=1234567890
+VITE_ADS_TXT=google.com, pub-xxxxxxxxxxxxxxxx, DIRECT, f08c47fec0942fa0
 # Optional for custom providers:
 # VITE_ADS_SCRIPT_URL=https://example.com/ad.js
 ```
 
 When enabled, an ad slot appears between the now playing info and the status controls.
+If `VITE_ADS_TXT` is set, the build outputs `ads.txt` at the site root.
 
 ## Connect to Jellyfin
 
