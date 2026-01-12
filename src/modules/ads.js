@@ -5,6 +5,8 @@ const ADS_PROVIDER = (import.meta.env.VITE_ADS_PROVIDER || "").toLowerCase();
 const ADS_CLIENT = import.meta.env.VITE_ADS_CLIENT || "";
 const ADS_SLOT = import.meta.env.VITE_ADS_SLOT || "";
 const ADS_SCRIPT_URL = import.meta.env.VITE_ADS_SCRIPT_URL || "";
+const ADS_WIDTH = Number.parseInt(import.meta.env.VITE_ADS_WIDTH || "", 10);
+const ADS_HEIGHT = Number.parseInt(import.meta.env.VITE_ADS_HEIGHT || "", 10);
 
 function loadScript(src, onLoad) {
   const script = document.createElement("script");
@@ -31,12 +33,18 @@ export function initAds() {
     const ad = document.createElement("ins");
     ad.className = "adsbygoogle";
     ad.style.display = "block";
-    ad.style.width = "100%";
-    ad.style.height = "100%";
+    const hasFixedSize = Number.isFinite(ADS_WIDTH) && Number.isFinite(ADS_HEIGHT);
+    if (hasFixedSize) {
+      ad.style.width = `${ADS_WIDTH}px`;
+      ad.style.height = `${ADS_HEIGHT}px`;
+    } else {
+      ad.style.width = "100%";
+      ad.style.height = "100%";
+      ad.setAttribute("data-ad-format", "auto");
+      ad.setAttribute("data-full-width-responsive", "true");
+    }
     ad.setAttribute("data-ad-client", ADS_CLIENT);
     ad.setAttribute("data-ad-slot", ADS_SLOT);
-    ad.setAttribute("data-ad-format", "auto");
-    ad.setAttribute("data-full-width-responsive", "true");
     dom.adSlot.appendChild(ad);
 
     loadScript(scriptUrl, () => {

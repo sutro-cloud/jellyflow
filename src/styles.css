@@ -971,17 +971,21 @@ body.is-playlist-open .playlist-toggle::after {
   display: none;
   align-items: center;
   justify-content: center;
-  height: 60px;
-  min-width: 220px;
-  max-width: 320px;
-  flex: 1 1 240px;
-  padding: 6px 12px;
+  width: 728px;
+  height: 90px;
+  padding: 0;
   border-radius: 14px;
   background: var(--panel-chip);
   color: var(--muted);
   font-size: 0.7rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 7;
+  pointer-events: auto;
 }
 
 .ad-slot.is-visible {
