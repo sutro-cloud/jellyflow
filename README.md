@@ -23,7 +23,7 @@ A modern, Jellyfin music browser and player built with React + Vite.
 
 3. Open the app:
 
-   - http://localhost:3000
+   - http://localhost:8067
 
 ## Production build
 
