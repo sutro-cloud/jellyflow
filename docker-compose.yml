@@ -3,5 +3,5 @@ services:
     image: jellyflow:latest
     container_name: jellyflow
     ports:
-      - "8080:80"
+      - "8067:80"
     restart: unless-stopped
