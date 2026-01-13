@@ -688,7 +688,7 @@ body.is-playlist-open .playlist-toggle::after {
   color: var(--ink);
   display: none;
   flex-direction: column;
-  padding: 16px 16px 14px;
+  padding: 16px 10px 10px;
   gap: 10px;
   overflow: hidden;
 }
@@ -1872,13 +1872,13 @@ dialog::backdrop {
   }
 
   .track {
-    padding: 0 8px;
-    grid-template-columns: 1fr;
+    padding: 2px 8px;
+    grid-template-columns: 1fr auto;
   }
 
   .coverflow-back .track {
-    padding-left: 4px;
-    padding-right: 4px;
+    padding-left: 6px;
+    padding-right: 6px;
   }
 
   .track span {
@@ -2103,7 +2103,7 @@ dialog::backdrop {
 
   .track {
     padding: 4px 8px;
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr auto;
   }
 
   .coverflow-back .track {
