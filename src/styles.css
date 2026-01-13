@@ -1272,7 +1272,7 @@ body.is-audio-paused .track.is-playing .track-playing i {
 .settings-menu-popover {
   position: absolute;
   bottom: calc(100% + 10px);
-  right: 0;
+  left: 0;
   min-width: 180px;
   padding: 8px;
   border-radius: 16px;
@@ -1940,11 +1940,6 @@ body.is-typeahead-open .typeahead-input {
     align-self: flex-start;
     width: 100%;
     min-width: 100%;
-  }
-
-  .settings-menu-popover {
-    right: auto;
-    left: 0;
   }
 
 }
