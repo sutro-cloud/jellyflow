@@ -224,7 +224,7 @@ button.icon {
 .coverflow-section {
   --lyrics-rail: 400px;
   --playlist-rail: 400px;
-  --cover-size: 420px;
+  --cover-size: 500px;
   --album-line-offset: 14px;
   --album-count-top: 14px;
   --album-count-pad: 24px;
@@ -1070,6 +1070,43 @@ body.is-playlist-open .playlist-toggle::after {
   justify-self: end;
 }
 
+.track-playing {
+  display: none;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+  color: var(--selection);
+}
+
+.track-playing i {
+  width: 2px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+  display: block;
+  transform-origin: bottom;
+  animation: track-bars 0.9s ease-in-out infinite;
+}
+
+.track-playing i:nth-child(2) {
+  height: 10px;
+  animation-delay: 0.15s;
+}
+
+.track-playing i:nth-child(3) {
+  height: 8px;
+  animation-delay: 0.3s;
+}
+
+.track.is-playing .track-playing {
+  display: inline-flex;
+}
+
+body.is-audio-paused .track.is-playing .track-playing i {
+  animation-play-state: paused;
+  opacity: 0.55;
+}
+
 .track-favorite {
   color: #e24b4b;
   font-size: 0.95rem;
@@ -1089,6 +1126,24 @@ body.is-playlist-open .playlist-toggle::after {
 .track.is-playing {
   background: rgba(47, 109, 246, 0.18);
   box-shadow: none;
+}
+
+@keyframes track-bars {
+  0%,
+  100% {
+    transform: scaleY(0.4);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track-playing i {
+    animation: none;
+  }
 }
 
 .empty {
@@ -1148,6 +1203,11 @@ body.is-playlist-open .playlist-toggle::after {
 .footer-controls {
   display: flex;
   align-items: center;
+  gap: 8px;
+}
+
+.search-toggle {
+  display: none;
 }
 
 .now-playing {
@@ -1498,6 +1558,10 @@ dialog::backdrop {
   z-index: 6;
 }
 
+.typeahead-input {
+  display: none;
+}
+
 .typeahead.is-active {
   opacity: 1;
   transform: translate(-50%, -50%) scale(1);
@@ -1519,6 +1583,35 @@ dialog::backdrop {
   :root {
     --audio-width: min(240px, 55vw);
     --audio-max-width: 260px;
+  }
+
+  .search-toggle {
+    display: grid;
+  }
+
+  .typeahead-input {
+    display: block;
+    position: fixed;
+    top: calc(12px + env(safe-area-inset-top));
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(320px, 86vw);
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--panel-border);
+    background: var(--panel);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 0.9rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 7;
+  }
+
+  body.is-typeahead-open .typeahead-input {
+    opacity: 1;
+    pointer-events: auto;
   }
 
   .coverflow-stage {
@@ -1576,6 +1669,10 @@ dialog::backdrop {
 
   .track-tail {
     gap: 4px;
+  }
+
+  .track-playing {
+    height: 10px;
   }
 }
 
@@ -2048,7 +2145,7 @@ dialog::backdrop {
 
   @supports (-webkit-touch-callout: none) {
     .coverflow-section {
-      --cover-size: 420px;
+      --cover-size: 500px;
     }
 
     .coverflow-item {

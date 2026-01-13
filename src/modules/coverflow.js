@@ -847,6 +847,9 @@ export function clearTypeahead() {
     dom.typeahead.textContent = "";
     dom.typeahead.classList.remove("is-active");
   }
+  if (dom.typeaheadInput) {
+    dom.typeaheadInput.value = "";
+  }
 }
 
 export function clearTypeaheadLookup() {

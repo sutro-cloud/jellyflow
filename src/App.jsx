@@ -7,6 +7,7 @@ import {
   List,
   Moon,
   Plug,
+  Search,
   Settings,
   Shuffle,
   SkipBack,
@@ -303,6 +304,15 @@ export default function App() {
               tabIndex={0}
               aria-label="Open connection settings"
             ></div>
+            <button
+              className="control-icon search-toggle"
+              id="searchToggle"
+              type="button"
+              aria-label="Search albums"
+              title="Search albums"
+            >
+              <Search className="icon" {...iconProps} />
+            </button>
           </div>
         </div>
         <audio id="audio" controls preload="auto"></audio>
@@ -319,6 +329,16 @@ export default function App() {
         </button>
       </footer>
 
+      <input
+        className="typeahead-input"
+        id="typeaheadInput"
+        type="search"
+        autoComplete="off"
+        autoCorrect="off"
+        spellCheck="false"
+        placeholder="Search artists"
+        aria-label="Search artists"
+      />
       <dialog id="settingsDialog">
         <div className="dialog-header">
           <div>

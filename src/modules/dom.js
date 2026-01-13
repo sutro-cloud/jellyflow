@@ -3,6 +3,7 @@ export const dom = {};
 export function initDom() {
   Object.assign(dom, {
     status: document.getElementById("status"),
+    searchToggle: document.getElementById("searchToggle"),
     openSettings: document.getElementById("openSettings"),
     settingsMenuWrap: document.getElementById("settingsMenuWrap"),
     settingsMenu: document.getElementById("settingsMenu"),
@@ -59,6 +60,7 @@ export function initDom() {
     adSlot: document.getElementById("adSlot"),
     audio: document.getElementById("audio"),
     typeahead: document.getElementById("typeahead"),
+    typeaheadInput: document.getElementById("typeaheadInput"),
     cornerControls: document.getElementById("cornerControls"),
   });
 }

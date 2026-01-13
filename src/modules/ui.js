@@ -50,6 +50,15 @@ export function createTrackButton({
     tail.appendChild(favoriteEl);
   }
 
+  const playingEl = document.createElement("div");
+  playingEl.className = "track-playing";
+  playingEl.setAttribute("aria-hidden", "true");
+  for (let i = 0; i < 3; i += 1) {
+    const bar = document.createElement("i");
+    playingEl.appendChild(bar);
+  }
+  tail.appendChild(playingEl);
+
   const durationEl = document.createElement("span");
   durationEl.textContent = duration;
   tail.appendChild(durationEl);

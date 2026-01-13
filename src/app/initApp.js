@@ -50,6 +50,42 @@ function setupEvents() {
 
   const closeSettingsMenu = () => setSettingsMenuOpen(false);
 
+  const applyTypeaheadQuery = (rawQuery) => {
+    if (state.openAlbumId) {
+      closeOpenAlbum();
+      focusActiveCover();
+    }
+    state.typeaheadQuery = normalizeTypeaheadQuery(rawQuery);
+    if (!state.typeaheadQuery) {
+      clearTypeahead();
+      return;
+    }
+    showTypeahead();
+    scheduleTypeaheadClear();
+    const found = jumpToArtistPrefix(state.typeaheadQuery);
+    if (found) {
+      clearTypeaheadLookup();
+    } else if (shouldUseServerLookup()) {
+      scheduleTypeaheadLookup(state.typeaheadQuery);
+    }
+  };
+
+  const openTypeaheadInput = () => {
+    if (!dom.typeaheadInput) {
+      return;
+    }
+    if (dom.settingsDialog.open) {
+      return;
+    }
+    document.body.classList.add("is-typeahead-open");
+    dom.typeaheadInput.value = state.typeaheadQuery || "";
+    dom.typeaheadInput.focus();
+    dom.typeaheadInput.setSelectionRange(
+      dom.typeaheadInput.value.length,
+      dom.typeaheadInput.value.length
+    );
+  };
+
   const resolveTrackIndex = (albumId, trackId, fallback) => {
     if (Number.isFinite(fallback)) {
       return fallback;
@@ -368,6 +404,35 @@ function setupEvents() {
     dom.connectSplashBtn.addEventListener("click", () => {
       closeSettingsMenu();
       dom.settingsDialog.showModal();
+    });
+  }
+  if (dom.searchToggle) {
+    dom.searchToggle.addEventListener("click", () => {
+      openTypeaheadInput();
+    });
+  }
+  if (dom.typeaheadInput) {
+    dom.typeaheadInput.addEventListener("input", (event) => {
+      applyTypeaheadQuery(event.target.value);
+    });
+    dom.typeaheadInput.addEventListener("focus", () => {
+      document.body.classList.add("is-typeahead-open");
+    });
+    dom.typeaheadInput.addEventListener("blur", () => {
+      document.body.classList.remove("is-typeahead-open");
+    });
+    dom.typeaheadInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        dom.typeaheadInput.blur();
+        return;
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        dom.typeaheadInput.value = "";
+        clearTypeahead();
+        dom.typeaheadInput.blur();
+      }
     });
   }
   dom.loadUsersBtn.addEventListener("click", loadUsers);
@@ -801,9 +866,11 @@ function setupEvents() {
   dom.audio.addEventListener("play", () => {
     setMediaSessionPlaybackState("playing");
     registerMediaSessionHandlers();
+    document.body.classList.remove("is-audio-paused");
   });
   dom.audio.addEventListener("pause", () => {
     setMediaSessionPlaybackState("paused");
+    document.body.classList.add("is-audio-paused");
   });
   dom.nowCover.addEventListener("click", () => {
     if (state.nowPlaying?.albumId) {
@@ -819,6 +886,10 @@ function setupEvents() {
     }
   });
   registerMediaSessionHandlers();
+
+  if (dom.audio) {
+    document.body.classList.toggle("is-audio-paused", dom.audio.paused);
+  }
 }
 
 export function initApp() {
