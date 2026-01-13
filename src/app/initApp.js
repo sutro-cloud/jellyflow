@@ -194,6 +194,7 @@ function setupEvents() {
           const entry = state.shuffleHistory[state.shuffleIndex];
           if (entry) {
             playTrack(entry.album, entry.track, entry.trackIndex);
+            void jumpToAlbumById(entry.album.Id, { animate: true });
           }
         }
         return;
@@ -203,6 +204,7 @@ function setupEvents() {
         const entry = state.shuffleHistory[state.shuffleIndex];
         if (entry) {
           playTrack(entry.album, entry.track, entry.trackIndex);
+          void jumpToAlbumById(entry.album.Id, { animate: true });
         }
         return;
       }
@@ -681,6 +683,12 @@ function setupEvents() {
       return;
     }
     const target = event.target;
+    if (target && target.closest && target.closest(".now-actions")) {
+      const isPrevNext = Boolean(target.closest("#prevTrackBtn, #nextTrackBtn"));
+      if (!(state.shuffleMode && isPrevNext)) {
+        return;
+      }
+    }
     if (target && target.closest && target.closest(".coverflow-item.is-open")) {
       return;
     }
