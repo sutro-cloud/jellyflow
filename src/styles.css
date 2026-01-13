@@ -1819,6 +1819,17 @@ dialog::backdrop {
   .now-actions {
     order: 2;
     justify-content: flex-start;
+    width: 100%;
+  }
+
+  .settings-menu {
+    order: 10;
+    margin-left: auto;
+  }
+
+  .settings-menu-popover {
+    right: 0;
+    left: auto;
   }
 
   #audio {
