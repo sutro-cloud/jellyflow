@@ -21,6 +21,8 @@ export function initDom() {
     connectBtn: document.getElementById("connectBtn"),
     resetBtn: document.getElementById("resetBtn"),
     themeToggle: document.getElementById("themeToggle"),
+    prevTrackBtn: document.getElementById("prevTrackBtn"),
+    nextTrackBtn: document.getElementById("nextTrackBtn"),
     shuffleBtn: document.getElementById("shuffleBtn"),
     favoriteToggle: document.getElementById("favoriteToggle"),
     coverflowTrack: document.getElementById("coverflowTrack"),

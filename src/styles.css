@@ -366,6 +366,14 @@ body.theme-dark .buymeacoffee-link {
   transform: translateY(-1px) scale(1.05);
 }
 
+.shuffle-toggle.is-active {
+  color: #fff;
+  border-color: var(--selection);
+  background: var(--selection);
+  box-shadow: 0 0 0 2px rgba(47, 109, 246, 0.35);
+  transform: translateY(-1px) scale(1.05);
+}
+
 .favorite-toggle .icon path {
   fill: none;
 }

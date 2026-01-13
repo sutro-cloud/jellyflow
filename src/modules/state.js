@@ -47,6 +47,9 @@ export const state = {
   isFavorite: false,
   favoriteBusy: false,
   favoriteToken: 0,
+  shuffleMode: false,
+  shuffleHistory: [],
+  shuffleIndex: -1,
 };
 
 function isSmallViewport() {

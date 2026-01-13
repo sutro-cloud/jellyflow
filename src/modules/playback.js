@@ -5,6 +5,74 @@ import { albumArtist, albumTitle } from "./music.js";
 import { loadLyricsForTrack } from "./lyrics.js";
 import { resetFavoriteState, syncFavoriteForTrack } from "./favorites.js";
 
+const supportsMediaSession = typeof navigator !== "undefined" && "mediaSession" in navigator;
+const supportsMediaMetadata = typeof MediaMetadata !== "undefined";
+
+function buildArtwork(albumId) {
+  if (!albumId) {
+    return [];
+  }
+  const sizes = [96, 128, 192, 256, 384, 512];
+  return sizes.map((size) => ({
+    src: imageUrl(albumId, size),
+    sizes: `${size}x${size}`,
+    type: "image/jpeg",
+  }));
+}
+
+export function setMediaSessionMetadata(album, track) {
+  if (!supportsMediaSession || !supportsMediaMetadata) {
+    return;
+  }
+  const title = track?.Name || "Untitled";
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title,
+    artist: albumArtist(album),
+    album: albumTitle(album),
+    artwork: buildArtwork(album?.Id),
+  });
+}
+
+export function clearMediaSessionMetadata() {
+  if (!supportsMediaSession) {
+    return;
+  }
+  navigator.mediaSession.metadata = null;
+  navigator.mediaSession.playbackState = "none";
+  if (navigator.mediaSession.setPositionState) {
+    try {
+      navigator.mediaSession.setPositionState({ duration: 0, playbackRate: 1, position: 0 });
+    } catch (error) {
+      // Some browsers throw on unsupported position state updates.
+    }
+  }
+}
+
+export function setMediaSessionPlaybackState(state) {
+  if (!supportsMediaSession) {
+    return;
+  }
+  navigator.mediaSession.playbackState = state;
+}
+
+export function updateMediaSessionPosition() {
+  if (!supportsMediaSession || !navigator.mediaSession.setPositionState || !dom.audio) {
+    return;
+  }
+  if (!Number.isFinite(dom.audio.duration)) {
+    return;
+  }
+  try {
+    navigator.mediaSession.setPositionState({
+      duration: dom.audio.duration,
+      playbackRate: dom.audio.playbackRate || 1,
+      position: dom.audio.currentTime || 0,
+    });
+  } catch (error) {
+    // Ignore unsupported position updates.
+  }
+}
+
 const nowPlayingListeners = new Set();
 
 export function onNowPlayingChange(handler) {
@@ -60,6 +128,7 @@ export function playTrack(album, track, index, options = {}) {
   dom.nowSub.textContent = `${albumTitle(album)} - ${albumArtist(album)}`;
   loadLyricsForTrack(track, album);
   syncFavoriteForTrack(track);
+  setMediaSessionMetadata(album, track);
   notifyNowPlayingChange();
 }
 
@@ -71,6 +140,7 @@ export function updateNowPlayingIdle() {
   dom.nowTitle.textContent = "Nothing playing";
   dom.nowSub.textContent = isConnected ? "Waiting for track" : "Connect to start listening";
   resetFavoriteState();
+  clearMediaSessionMetadata();
 }
 
 export function toggleAudioPlayback() {

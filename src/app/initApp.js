@@ -26,7 +26,13 @@ import {
 } from "../modules/coverflow.js";
 import { loadPlaylists, playPlaylistTrack, setPlaylistView, syncPlaylistHighlights } from "../modules/playlists.js";
 import { loadLyricsForTrack, maybeEstimateLyrics, syncLyrics } from "../modules/lyrics.js";
-import { onNowPlayingChange, playTrack, toggleAudioPlayback } from "../modules/playback.js";
+import {
+  onNowPlayingChange,
+  playTrack,
+  setMediaSessionPlaybackState,
+  toggleAudioPlayback,
+  updateMediaSessionPosition,
+} from "../modules/playback.js";
 import { resetFavoriteState, toggleFavoriteForCurrentTrack } from "../modules/favorites.js";
 import { initAds } from "../modules/ads.js";
 import { initAnalytics } from "../modules/analytics.js";
@@ -43,6 +49,203 @@ function setupEvents() {
   };
 
   const closeSettingsMenu = () => setSettingsMenuOpen(false);
+
+  const resolveTrackIndex = (albumId, trackId, fallback) => {
+    if (Number.isFinite(fallback)) {
+      return fallback;
+    }
+    if (!albumId || !trackId) {
+      return 0;
+    }
+    const tracks = state.tracksByAlbum.get(albumId) || [];
+    const foundIndex = tracks.findIndex((track) => track.Id === trackId);
+    return foundIndex >= 0 ? foundIndex : 0;
+  };
+
+  const pushShuffleEntry = (entry) => {
+    if (!entry) {
+      return;
+    }
+    if (state.shuffleIndex < state.shuffleHistory.length - 1) {
+      state.shuffleHistory = state.shuffleHistory.slice(0, state.shuffleIndex + 1);
+    }
+    state.shuffleHistory.push(entry);
+    state.shuffleIndex = state.shuffleHistory.length - 1;
+  };
+
+  const shuffleToRandomTrack = async () => {
+    const result = await shufflePlay();
+    if (!state.shuffleMode || !result) {
+      return;
+    }
+    pushShuffleEntry({
+      album: result.album,
+      track: result.track,
+      trackIndex: result.trackIndex,
+    });
+  };
+
+  const setShuffleMode = (isEnabled) => {
+    state.shuffleMode = isEnabled;
+    if (dom.shuffleBtn) {
+      dom.shuffleBtn.classList.toggle("is-active", isEnabled);
+      dom.shuffleBtn.setAttribute("aria-pressed", isEnabled ? "true" : "false");
+      dom.shuffleBtn.title = isEnabled ? "Shuffle mode on" : "Shuffle album and track";
+    }
+    if (!isEnabled) {
+      state.shuffleHistory = [];
+      state.shuffleIndex = -1;
+      return;
+    }
+    if (state.currentTrack && state.currentAlbum) {
+      const albumId = state.currentAlbum.Id;
+      const trackIndex = resolveTrackIndex(
+        albumId,
+        state.currentTrack.Id,
+        state.nowPlaying?.index
+      );
+      state.shuffleHistory = [
+        {
+          album: state.currentAlbum,
+          track: state.currentTrack,
+          trackIndex,
+        },
+      ];
+      state.shuffleIndex = 0;
+      return;
+    }
+    state.shuffleHistory = [];
+    state.shuffleIndex = -1;
+  };
+
+  const resolvePlaybackContext = () => {
+    if (!state.nowPlaying) {
+      return null;
+    }
+    if (state.playlistPlayback) {
+      const playlistId = state.playlistPlayback.playlistId;
+      const tracks = state.playlistTracksById.get(playlistId) || [];
+      const index = state.playlistPlayback.index;
+      return {
+        type: "playlist",
+        playlistId,
+        tracks,
+        index,
+      };
+    }
+    const albumId = state.nowPlaying.albumId;
+    const tracks = state.tracksByAlbum.get(albumId) || [];
+    let index = state.nowPlaying.index;
+    if (!Number.isFinite(index) && state.currentTrack) {
+      index = tracks.findIndex((track) => track.Id === state.currentTrack.Id);
+    }
+    const album =
+      state.albums.find((item) => item.Id === albumId) ||
+      (state.currentAlbum && state.currentAlbum.Id === albumId ? state.currentAlbum : null);
+    return {
+      type: "album",
+      album,
+      tracks,
+      index,
+    };
+  };
+
+  const stepTrack = (direction) => {
+    if (state.shuffleMode) {
+      if (direction < 0) {
+        if (state.shuffleIndex > 0) {
+          state.shuffleIndex -= 1;
+          const entry = state.shuffleHistory[state.shuffleIndex];
+          if (entry) {
+            playTrack(entry.album, entry.track, entry.trackIndex);
+          }
+        }
+        return;
+      }
+      if (state.shuffleIndex >= 0 && state.shuffleIndex < state.shuffleHistory.length - 1) {
+        state.shuffleIndex += 1;
+        const entry = state.shuffleHistory[state.shuffleIndex];
+        if (entry) {
+          playTrack(entry.album, entry.track, entry.trackIndex);
+        }
+        return;
+      }
+      void shuffleToRandomTrack();
+      return;
+    }
+    const context = resolvePlaybackContext();
+    if (!context || !Number.isFinite(context.index)) {
+      return;
+    }
+    const nextIndex = context.index + direction;
+    const nextTrack = context.tracks[nextIndex];
+    if (!nextTrack) {
+      return;
+    }
+    if (context.type === "playlist") {
+      void playPlaylistTrack(context.playlistId, nextTrack, nextIndex);
+      return;
+    }
+    if (!context.album) {
+      return;
+    }
+    playTrack(context.album, nextTrack, nextIndex);
+  };
+
+  const setMediaSessionHandler = (action, handler) => {
+    if (typeof navigator === "undefined" || !("mediaSession" in navigator)) {
+      return;
+    }
+    try {
+      navigator.mediaSession.setActionHandler(action, handler);
+    } catch (error) {
+      // Unsupported actions throw in some browsers.
+    }
+  };
+
+  const registerMediaSessionHandlers = () => {
+    setMediaSessionHandler("play", () => {
+      dom.audio.play().catch(() => {});
+    });
+    setMediaSessionHandler("pause", () => {
+      dom.audio.pause();
+    });
+    setMediaSessionHandler("previoustrack", () => {
+      void stepTrack(-1);
+    });
+    setMediaSessionHandler("nexttrack", () => {
+      void stepTrack(1);
+    });
+    setMediaSessionHandler("seekto", (details) => {
+      if (!details || !Number.isFinite(details.seekTime)) {
+        return;
+      }
+      if (details.fastSeek && typeof dom.audio.fastSeek === "function") {
+        dom.audio.fastSeek(details.seekTime);
+      } else {
+        dom.audio.currentTime = details.seekTime;
+      }
+      updateMediaSessionPosition();
+    });
+    setMediaSessionHandler("seekbackward", (details) => {
+      const offset = Number.isFinite(details?.seekOffset) ? details.seekOffset : 10;
+      dom.audio.currentTime = Math.max(0, dom.audio.currentTime - offset);
+      updateMediaSessionPosition();
+    });
+    setMediaSessionHandler("seekforward", (details) => {
+      const offset = Number.isFinite(details?.seekOffset) ? details.seekOffset : 10;
+      const duration = Number.isFinite(dom.audio.duration)
+        ? dom.audio.duration
+        : dom.audio.currentTime + offset;
+      dom.audio.currentTime = Math.min(duration, dom.audio.currentTime + offset);
+      updateMediaSessionPosition();
+    });
+    setMediaSessionHandler("stop", () => {
+      dom.audio.pause();
+      dom.audio.currentTime = 0;
+      updateMediaSessionPosition();
+    });
+  };
 
   const setLyricsPanelOpen = (isOpen) => {
     if (!dom.coverflowSection) {
@@ -185,7 +388,21 @@ function setupEvents() {
   });
   if (dom.shuffleBtn) {
     dom.shuffleBtn.addEventListener("click", () => {
-      void shufflePlay();
+      const nextMode = !state.shuffleMode;
+      setShuffleMode(nextMode);
+      if (nextMode && !state.nowPlaying) {
+        void shuffleToRandomTrack();
+      }
+    });
+  }
+  if (dom.prevTrackBtn) {
+    dom.prevTrackBtn.addEventListener("click", () => {
+      void stepTrack(-1);
+    });
+  }
+  if (dom.nextTrackBtn) {
+    dom.nextTrackBtn.addEventListener("click", () => {
+      void stepTrack(1);
     });
   }
   if (dom.favoriteToggle) {
@@ -406,6 +623,28 @@ function setupEvents() {
     if (event.ctrlKey || event.metaKey || event.altKey) {
       return;
     }
+    if (event.key === "MediaTrackNext") {
+      event.preventDefault();
+      void stepTrack(1);
+      return;
+    }
+    if (event.key === "MediaTrackPrevious") {
+      event.preventDefault();
+      void stepTrack(-1);
+      return;
+    }
+    if (event.key === "MediaPlayPause") {
+      event.preventDefault();
+      toggleAudioPlayback();
+      return;
+    }
+    if (event.key === "MediaStop") {
+      event.preventDefault();
+      dom.audio.pause();
+      dom.audio.currentTime = 0;
+      updateMediaSessionPosition();
+      return;
+    }
     const active = document.activeElement;
     const isEditable =
       active &&
@@ -545,44 +784,23 @@ function setupEvents() {
     }
   });
   dom.audio.addEventListener("ended", () => {
-    if (!state.nowPlaying) {
-      return;
-    }
-    if (state.playlistPlayback) {
-      const playlistId = state.playlistPlayback.playlistId;
-      const tracks = state.playlistTracksById.get(playlistId) || [];
-      const nextIndex = state.playlistPlayback.index + 1;
-      if (tracks[nextIndex]) {
-        void playPlaylistTrack(playlistId, tracks[nextIndex], nextIndex);
-        return;
-      }
-    }
-    const albumId = state.nowPlaying.albumId;
-    const tracks = state.tracksByAlbum.get(albumId) || [];
-    let currentIndex = state.nowPlaying.index;
-    if (!Number.isFinite(currentIndex) && state.currentTrack) {
-      currentIndex = tracks.findIndex((track) => track.Id === state.currentTrack.Id);
-    }
-    if (!Number.isFinite(currentIndex) || currentIndex < 0) {
-      return;
-    }
-    const nextIndex = currentIndex + 1;
-    if (tracks[nextIndex]) {
-      const album =
-        state.albums.find((item) => item.Id === albumId) ||
-        (state.currentAlbum && state.currentAlbum.Id === albumId ? state.currentAlbum : null);
-      if (!album) {
-        return;
-      }
-      playTrack(album, tracks[nextIndex], nextIndex);
-    }
+    void stepTrack(1);
   });
   dom.audio.addEventListener("timeupdate", () => {
     syncLyrics();
+    updateMediaSessionPosition();
   });
   dom.audio.addEventListener("loadedmetadata", () => {
     maybeEstimateLyrics(state.currentTrack);
     syncLyrics(true);
+    updateMediaSessionPosition();
+  });
+  dom.audio.addEventListener("play", () => {
+    setMediaSessionPlaybackState("playing");
+    registerMediaSessionHandlers();
+  });
+  dom.audio.addEventListener("pause", () => {
+    setMediaSessionPlaybackState("paused");
   });
   dom.nowCover.addEventListener("click", () => {
     if (state.nowPlaying?.albumId) {
@@ -597,6 +815,7 @@ function setupEvents() {
       }
     }
   });
+  registerMediaSessionHandlers();
 }
 
 export function initApp() {

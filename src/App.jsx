@@ -1,5 +1,16 @@
 import React, { useEffect, useRef } from "react";
-import { FileText, Heart, List, Moon, Plug, Settings, Shuffle, Sun } from "lucide-react";
+import {
+  FileText,
+  Heart,
+  List,
+  Moon,
+  Plug,
+  Settings,
+  Shuffle,
+  SkipBack,
+  SkipForward,
+  Sun,
+} from "lucide-react";
 import { initDom } from "./modules/dom.js";
 import { initApp } from "./app/initApp.js";
 
@@ -229,10 +240,29 @@ export default function App() {
                 </div>
               </div>
               <button
+                className="control-icon"
+                id="prevTrackBtn"
+                type="button"
+                aria-label="Previous track"
+                title="Previous track"
+              >
+                <SkipBack className="icon" {...iconProps} />
+              </button>
+              <button
+                className="control-icon"
+                id="nextTrackBtn"
+                type="button"
+                aria-label="Next track"
+                title="Next track"
+              >
+                <SkipForward className="icon" {...iconProps} />
+              </button>
+              <button
                 className="control-icon shuffle-toggle"
                 id="shuffleBtn"
                 type="button"
                 aria-label="Shuffle album and track"
+                aria-pressed="false"
                 title="Shuffle album and track"
               >
                 <Shuffle className="icon" {...iconProps} />

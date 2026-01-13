@@ -1081,7 +1081,7 @@ async function loadAlbumWindowAndFocusById(startIndex, albumId, token, options =
 export async function shufflePlay() {
   if (!state.serverUrl || !state.apiKey || !state.userId) {
     setStatus("Connect to shuffle", "warn");
-    return;
+    return null;
   }
   let total = state.albumTotal;
   if (!total) {
@@ -1091,12 +1091,12 @@ export async function shufflePlay() {
       state.albumTotal = total;
     } catch (error) {
       setStatus("Shuffle failed", "warn");
-      return;
+      return null;
     }
   }
   if (!total) {
     setStatus("No albums found", "warn");
-    return;
+    return null;
   }
   const maxAttempts = Math.min(6, total);
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
@@ -1121,11 +1121,13 @@ export async function shufflePlay() {
       continue;
     }
     const trackIndex = Math.floor(Math.random() * tracks.length);
-    playTrack(album, tracks[trackIndex], trackIndex);
+    const track = tracks[trackIndex];
+    playTrack(album, track, trackIndex);
     void jumpToAlbumById(album.Id, { animate: true });
-    return;
+    return { album, track, trackIndex };
   }
   setStatus("Shuffle found no tracks", "warn");
+  return null;
 }
 
 export async function jumpToAlbumById(albumId, options = {}) {
