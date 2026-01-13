@@ -51,9 +51,13 @@ function setupEvents() {
   const closeSettingsMenu = () => setSettingsMenuOpen(false);
 
   const applyTypeaheadQuery = (rawQuery) => {
+    const isTypeaheadFocused =
+      typeof document !== "undefined" && document.activeElement === dom.typeaheadInput;
     if (state.openAlbumId) {
       closeOpenAlbum();
-      focusActiveCover();
+      if (!isTypeaheadFocused) {
+        focusActiveCover();
+      }
     }
     state.typeaheadQuery = normalizeTypeaheadQuery(rawQuery);
     if (!state.typeaheadQuery) {
