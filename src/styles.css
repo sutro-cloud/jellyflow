@@ -1253,9 +1253,7 @@ body.theme-dark .settings-menu-item.is-active {
   line-height: 1;
 }
 
-.player-collapse::before,
-.player-reveal::before,
-.player-reveal::after {
+.player-collapse::before {
   content: "";
   position: absolute;
   left: 50%;
@@ -1265,15 +1263,9 @@ body.theme-dark .settings-menu-item.is-active {
   border-radius: 999px;
 }
 
-.player-collapse::before,
-.player-reveal::before {
+.player-collapse::before {
   width: 12px;
   height: 2px;
-}
-
-.player-reveal::after {
-  width: 2px;
-  height: 12px;
 }
 
 .player-reveal {
@@ -1292,6 +1284,12 @@ body.theme-dark .settings-menu-item.is-active {
   line-height: 1;
   cursor: pointer;
   transition: transform 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.player-reveal .icon {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.8;
 }
 
 .player-reveal:hover {
@@ -1551,6 +1549,23 @@ dialog::backdrop {
     border-radius: 16px;
     font-size: 1.35rem;
   }
+
+  .tracklist {
+    gap: 8px;
+    padding-right: 0;
+  }
+
+  .coverflow-back .tracklist {
+    padding: 6px 0;
+  }
+
+  .track {
+    padding: 8px 8px;
+  }
+
+  .track-tail {
+    gap: 4px;
+  }
 }
 
 @media (max-width: 540px) {
@@ -1642,9 +1657,13 @@ dialog::backdrop {
   }
 
   .now-cover {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
+    display: none;
+  }
+
+  .now-info {
+    min-width: 0;
+    max-width: 100%;
+    flex: 1 1 auto;
   }
 
   .now-actions {
@@ -1707,12 +1726,22 @@ dialog::backdrop {
   }
 
   .tracklist {
-    gap: 8px;
+    gap: 6px;
+    padding-right: 0;
+  }
+
+  .coverflow-back .tracklist {
+    padding: 4px 0;
   }
 
   .track {
-    padding: 8px 10px;
+    padding: 0 8px;
     grid-template-columns: 1fr;
+  }
+
+  .coverflow-back .track {
+    padding-left: 4px;
+    padding-right: 4px;
   }
 
   .track span {
@@ -1750,6 +1779,39 @@ dialog::backdrop {
 
   .playlist-count {
     font-size: 10px;
+  }
+}
+
+@media (max-width: 540px) and (orientation: portrait) {
+  .player {
+    grid-template-columns: 1fr;
+    row-gap: 10px;
+  }
+
+  .player-left {
+    align-items: stretch;
+  }
+
+  .now-cover {
+    display: none;
+  }
+
+  .now-playing {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .now-info {
+    order: 1;
+  }
+
+  .now-actions {
+    order: 2;
+    justify-content: flex-start;
+  }
+
+  #audio {
+    order: 3;
   }
 }
 
@@ -1897,11 +1959,21 @@ dialog::backdrop {
 
   .tracklist {
     gap: 6px;
+    padding-right: 0;
+  }
+
+  .coverflow-back .tracklist {
+    padding: 4px 0;
   }
 
   .track {
-    padding: 7px 10px;
+    padding: 6px 8px;
     grid-template-columns: 1fr;
+  }
+
+  .coverflow-back .track {
+    padding-left: 4px;
+    padding-right: 4px;
   }
 
   .track span {

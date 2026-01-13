@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import {
+  ChevronDown,
+  ChevronUp,
   FileText,
   Heart,
   List,
@@ -237,6 +239,18 @@ export default function App() {
                     <FileText className="icon" {...iconProps} />
                     <span>Lyrics</span>
                   </button>
+                  <button
+                    className="settings-menu-item"
+                    id="playerCollapse"
+                    type="button"
+                    role="menuitem"
+                    aria-controls="playerFooter"
+                    aria-expanded="true"
+                    title="Hide player controls"
+                  >
+                    <ChevronDown className="icon" {...iconProps} />
+                    <span>Hide player controls</span>
+                  </button>
                 </div>
               </div>
               <button
@@ -277,15 +291,6 @@ export default function App() {
               >
                 <Heart className="icon" {...iconProps} />
               </button>
-              <button
-                className="control-icon player-collapse"
-                id="playerCollapse"
-                type="button"
-                aria-label="Hide player controls"
-                aria-controls="playerFooter"
-                aria-expanded="true"
-                title="Hide player controls"
-              ></button>
             </div>
           </div>
           <div className="ad-slot" id="adSlot" aria-hidden="true"></div>
@@ -309,7 +314,9 @@ export default function App() {
           aria-controls="playerFooter"
           aria-expanded="true"
           title="Show player controls"
-        ></button>
+        >
+          <ChevronUp className="icon" {...iconProps} />
+        </button>
       </footer>
 
       <dialog id="settingsDialog">

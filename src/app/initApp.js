@@ -426,7 +426,10 @@ function setupEvents() {
   };
   if (dom.playerCollapse) {
     setPlayerCollapsed(false);
-    dom.playerCollapse.addEventListener("click", () => setPlayerCollapsed(true));
+    dom.playerCollapse.addEventListener("click", () => {
+      closeSettingsMenu();
+      setPlayerCollapsed(true);
+    });
   }
   if (dom.playerReveal) {
     dom.playerReveal.addEventListener("click", () => setPlayerCollapsed(false));
