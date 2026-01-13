@@ -424,11 +424,13 @@ function setupEvents() {
     dom.typeaheadInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         event.preventDefault();
+        event.stopPropagation();
         dom.typeaheadInput.blur();
         return;
       }
       if (event.key === "Escape") {
         event.preventDefault();
+        event.stopPropagation();
         dom.typeaheadInput.value = "";
         clearTypeahead();
         dom.typeaheadInput.blur();

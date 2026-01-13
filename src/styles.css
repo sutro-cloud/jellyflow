@@ -1230,7 +1230,7 @@ body.is-audio-paused .track.is-playing .track-playing i {
 }
 
 .search-toggle {
-  display: none;
+  display: grid;
 }
 
 .now-playing {
@@ -1592,12 +1592,33 @@ dialog::backdrop {
 }
 
 .typeahead-input {
-  display: none;
+  display: block;
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(320px, 86vw);
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 0.9rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 7;
 }
 
 .typeahead.is-active {
   opacity: 1;
   transform: translate(-50%, -50%) scale(1);
+}
+
+body.is-typeahead-open .typeahead-input {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 @media (max-width: 960px) {
@@ -1620,31 +1641,6 @@ dialog::backdrop {
 
   .search-toggle {
     display: grid;
-  }
-
-  .typeahead-input {
-    display: block;
-    position: fixed;
-    top: calc(12px + env(safe-area-inset-top));
-    left: 50%;
-    transform: translateX(-50%);
-    width: min(320px, 86vw);
-    padding: 8px 14px;
-    border-radius: 999px;
-    border: 1px solid var(--panel-border);
-    background: var(--panel);
-    color: var(--ink);
-    font-family: inherit;
-    font-size: 0.9rem;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
-    z-index: 7;
-  }
-
-  body.is-typeahead-open .typeahead-input {
-    opacity: 1;
-    pointer-events: auto;
   }
 
   .coverflow-stage {
