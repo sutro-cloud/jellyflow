@@ -616,9 +616,41 @@ function setupEvents() {
     lastX: 0,
     lastTime: 0,
   };
+  const SWIPE_MAX_STEPS_PER_FRAME = 3;
+  let swipeRafId = null;
+  let pendingSwipeSteps = 0;
   const SWIPE_LOCK_THRESHOLD = 6;
   const SWIPE_STEP = 55;
   const SWIPE_END_THRESHOLD = 18;
+  const scheduleSwipeSteps = () => {
+    if (swipeRafId != null) {
+      return;
+    }
+    swipeRafId = window.requestAnimationFrame(() => {
+      swipeRafId = null;
+      const steps = pendingSwipeSteps;
+      if (!steps) {
+        return;
+      }
+      const direction = steps > 0 ? 1 : -1;
+      const remaining = Math.abs(steps);
+      const applyCount = Math.min(SWIPE_MAX_STEPS_PER_FRAME, remaining);
+      for (let i = 0; i < applyCount; i += 1) {
+        moveActiveIndex(direction);
+      }
+      pendingSwipeSteps -= direction * applyCount;
+      if (pendingSwipeSteps) {
+        scheduleSwipeSteps();
+      }
+    });
+  };
+  const queueSwipeSteps = (direction, count = 1) => {
+    if (!count) {
+      return;
+    }
+    pendingSwipeSteps += direction * count;
+    scheduleSwipeSteps();
+  };
   const shouldIgnoreCoverflowGesture = (target) =>
     target &&
     target.closest &&
@@ -672,9 +704,7 @@ function setupEvents() {
     }
     swipeState.stepCount = nextStep;
     const stepDirection = delta > 0 ? -1 : 1;
-    for (let i = 0; i < Math.abs(delta); i += 1) {
-      moveActiveIndex(stepDirection);
-    }
+    queueSwipeSteps(stepDirection, Math.abs(delta));
   };
   const handleCoverflowTouchEnd = (event) => {
     if (!swipeState.active) {
@@ -687,16 +717,14 @@ function setupEvents() {
     const direction = deltaX > 0 ? -1 : 1;
     if (swipeState.axis === "x" && swipeState.stepCount === 0) {
       if (Math.abs(deltaX) > SWIPE_END_THRESHOLD) {
-        moveActiveIndex(direction);
+        queueSwipeSteps(direction, 1);
       }
     } else if (swipeState.axis === "x") {
       let extraSteps = 0;
       if (velocity > 0.8) {
         extraSteps = Math.min(4, Math.ceil((velocity - 0.8) * 4));
       }
-      for (let i = 0; i < extraSteps; i += 1) {
-        moveActiveIndex(direction);
-      }
+      queueSwipeSteps(direction, extraSteps);
     }
     swipeState.active = false;
     swipeState.axis = null;

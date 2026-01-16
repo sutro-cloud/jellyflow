@@ -406,7 +406,7 @@ function updateCoverflow() {
     dom.coverflowTrack.classList.toggle("is-safari", isSafari);
   }
   const items = Array.from(dom.coverflowTrack.children);
-  const maxVisibleOffset = isSafari ? 5 : 5;
+  const maxVisibleOffset = IS_IOS ? 3 : 5;
   let safariMetrics = null;
   if (isSafari && items.length) {
     const sampleStyle = getComputedStyle(items[0]);
