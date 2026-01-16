@@ -555,6 +555,10 @@ function setupEvents() {
         return;
       }
       if (state.openAlbumId) {
+        const openItem = dom.coverflowTrack.querySelector(".coverflow-item.is-open");
+        if (openItem && openItem.contains(target)) {
+          return;
+        }
         event.preventDefault();
         event.stopPropagation();
         closeOpenAlbum();

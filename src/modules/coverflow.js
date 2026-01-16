@@ -18,6 +18,7 @@ const isSafari =
   /safari/i.test(navigator.userAgent) &&
   !/chrome|crios|android/i.test(navigator.userAgent);
 const SAFARI_WILL_CHANGE_TIMEOUT = 1600;
+const ALBUM_FLIP_LOCK_MS = 500;
 // Keep these in sync with .coverflow-item.is-open in styles.css.
 const SAFARI_OPEN_LIFT = 70;
 const SAFARI_OPEN_SCALE = 1.08;
@@ -30,6 +31,11 @@ const MAX_LOADED_COUNT =
 let safariWillChangeBoost = false;
 let safariWillChangeTimer = null;
 let coverflowAnimationToken = 0;
+let albumFlipLockToken = 0;
+const albumFlipLock = {
+  albumId: null,
+  until: 0,
+};
 const COVER_IMAGE_DEFAULT = 600;
 const COVER_IMAGE_SMALL = 420;
 const coverImageSize =
@@ -78,6 +84,31 @@ function kickSafariPerspective() {
   requestAnimationFrame(() => {
     dom.coverflowStage.classList.remove("safari-perspective-kick");
   });
+}
+
+function setAlbumFlipLock(albumId) {
+  if (!albumId) {
+    return;
+  }
+  const token = ++albumFlipLockToken;
+  albumFlipLock.albumId = albumId;
+  albumFlipLock.until = Date.now() + ALBUM_FLIP_LOCK_MS;
+  updateCoverflow();
+  window.setTimeout(() => {
+    if (token !== albumFlipLockToken) {
+      return;
+    }
+    albumFlipLock.albumId = null;
+    albumFlipLock.until = 0;
+    updateCoverflow();
+  }, ALBUM_FLIP_LOCK_MS);
+}
+
+function isAlbumFlipLocked(albumId) {
+  if (!albumId || albumFlipLock.albumId !== albumId) {
+    return false;
+  }
+  return Date.now() < albumFlipLock.until;
 }
 
 function createCoverflowItem(album, index) {
@@ -148,6 +179,11 @@ function createCoverflowItem(album, index) {
 
   item.addEventListener("click", (event) => {
     if (event.target.closest(".coverflow-back")) {
+      return;
+    }
+    if (isAlbumFlipLocked(album.Id)) {
+      event.preventDefault();
+      event.stopPropagation();
       return;
     }
     if (state.openAlbumId && state.openAlbumId !== album.Id) {
@@ -393,6 +429,7 @@ function updateCoverflow() {
     const albumId = item.dataset.albumId;
     const isOpen = albumId && albumId === state.openAlbumId;
     item.classList.toggle("is-open", isOpen);
+    item.classList.toggle("is-flipping", isAlbumFlipLocked(albumId));
     const allowReflection = absOffset <= 3 && (!IS_SMALL_VIEWPORT || IS_IOS);
     item.classList.toggle("with-reflection", allowReflection);
     item.style.zIndex = isOpen ? "200" : (100 - Math.abs(offset)).toString();
@@ -790,6 +827,9 @@ export function handleCoverClick(index) {
   if (!album) {
     return;
   }
+  if (isAlbumFlipLocked(album.Id)) {
+    return;
+  }
   if (state.activeIndex !== index) {
     setActiveIndex(index);
     focusActiveCover();
@@ -811,6 +851,7 @@ export function toggleOpenAlbum(albumId) {
     closeOpenAlbum();
     return;
   }
+  setAlbumFlipLock(albumId);
   state.openAlbumId = albumId;
   state.trackFocusIndex = null;
   state.trackFocusAlbumId = albumId;
@@ -820,6 +861,10 @@ export function toggleOpenAlbum(albumId) {
 }
 
 export function closeOpenAlbum() {
+  const closingId = state.openAlbumId;
+  if (closingId) {
+    setAlbumFlipLock(closingId);
+  }
   state.openAlbumId = null;
   state.trackFocusIndex = null;
   state.trackFocusAlbumId = null;
