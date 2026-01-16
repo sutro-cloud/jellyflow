@@ -560,6 +560,8 @@ body.is-playlist-open .playlist-toggle::after {
   left: 50%;
   --cover-spacing: 300px;
   --cover-depth: -190px;
+  --open-lift: 0px;
+  --open-scale: 1;
   --cover-tilt: -24deg;
   --reflection-gap: 3px;
   --reflection-height: 110px;
@@ -574,10 +576,16 @@ body.is-playlist-open .playlist-toggle::after {
   -webkit-transform-style: preserve-3d;
   transform: translate(-50%, -50%)
     translateX(calc(var(--offset) * var(--cover-spacing)))
-    translateZ(calc(var(--abs) * var(--cover-depth)))
-    rotateY(calc(var(--offset) * var(--cover-tilt)));
-  transition: transform 0.45s ease, opacity 0.3s ease;
+    translateZ(calc(var(--abs) * var(--cover-depth) + var(--open-lift)))
+    rotateY(calc(var(--offset) * var(--cover-tilt)))
+    scale(var(--open-scale));
+  transition: transform 0.95s cubic-bezier(0.25, 0.85, 0.25, 1), opacity 0.45s ease;
   cursor: pointer;
+}
+
+.coverflow-item.is-open {
+  --open-lift: 70px;
+  --open-scale: 1.08;
 }
 
 .coverflow-item.is-active {
@@ -611,7 +619,7 @@ body.is-playlist-open .playlist-toggle::after {
   transform: translateZ(0);
   background: var(--cover-bg);
   box-shadow: none;
-  transition: transform 0.6s ease;
+  transition: transform 0.95s cubic-bezier(0.25, 0.85, 0.25, 1);
 }
 
 .coverflow-item.is-active .coverflow-card {
@@ -788,6 +796,11 @@ body.is-playlist-open .playlist-toggle::after {
   opacity: 1;
   transform: translateX(0);
   pointer-events: auto;
+}
+
+.coverflow-section.is-album-open .album-line {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .lyrics-header {

@@ -382,6 +382,10 @@ function updateCoverflow() {
     item.style.opacity = Math.abs(offset) > 5 ? "0" : "1";
   });
 
+  if (dom.coverflowSection) {
+    dom.coverflowSection.classList.toggle("is-album-open", Boolean(state.openAlbumId));
+  }
+
   updateAlbumMeta();
   maybePrefetchWindow();
 }
