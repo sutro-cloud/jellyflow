@@ -726,9 +726,13 @@ body.is-playlist-open .playlist-toggle::after {
   color: var(--ink);
   display: none;
   flex-direction: column;
-  padding: 16px 10px 10px;
+  padding: 12px 0 0;
   gap: 10px;
   overflow: hidden;
+}
+
+.coverflow-back-header {
+  padding: 0 10px;
 }
 
 .coverflow-item.is-open .coverflow-back {
@@ -770,9 +774,24 @@ body.is-playlist-open .playlist-toggle::after {
 .coverflow-back .tracklist {
   max-height: 100%;
   overflow-y: auto;
-  padding: 8px 6px 6px 10px;
+  gap: 0;
+  padding: 6px 0;
+  border: 1px solid var(--panel-border);
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+}
+
+.coverflow-back .track {
+  border-radius: 0;
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--panel-border);
+  padding: 12px 14px;
+}
+
+.coverflow-back .track:first-child {
+  border-top: none;
 }
 
 .lyrics-panel {
@@ -1765,7 +1784,7 @@ body.is-typeahead-open .typeahead-input {
   }
 
   .coverflow-back .tracklist {
-    padding: 6px 0;
+    padding: 4px 0;
   }
 
   .track {
