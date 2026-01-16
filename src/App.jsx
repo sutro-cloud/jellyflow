@@ -254,18 +254,6 @@ export default function App() {
                     <FileText className="icon" {...iconProps} />
                     <span>Lyrics</span>
                   </button>
-                  <button
-                    className="settings-menu-item"
-                    id="playerCollapse"
-                    type="button"
-                    role="menuitem"
-                    aria-controls="playerFooter"
-                    aria-expanded="true"
-                    title="Hide player controls"
-                  >
-                    <ChevronDown className="icon" {...iconProps} />
-                    <span>Hide player controls</span>
-                  </button>
                 </div>
               </div>
               <button
@@ -305,6 +293,17 @@ export default function App() {
                 title="Favorite track"
               >
                 <Heart className="icon" {...iconProps} />
+              </button>
+              <button
+                className="control-icon"
+                id="playerCollapse"
+                type="button"
+                aria-label="Hide player controls"
+                aria-controls="playerFooter"
+                aria-expanded="true"
+                title="Hide player controls"
+              >
+                <ChevronDown className="icon" {...iconProps} />
               </button>
             </div>
             <audio id="audio" controls preload="auto"></audio>

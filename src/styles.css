@@ -1465,13 +1465,13 @@ body.theme-dark .settings-menu-item.is-active {
   height: 22px;
   padding: 0 10px;
   border-radius: 999px;
-  border: 1px solid var(--field-border);
-  background: var(--ghost);
-  color: var(--ink);
+  border: none;
+  background: transparent;
+  color: var(--control-ink);
   font-size: 0;
   line-height: 1;
   cursor: pointer;
-  transition: transform 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  transition: transform 0.2s ease, color 0.2s ease;
 }
 
 .player-reveal .icon {
@@ -1482,8 +1482,7 @@ body.theme-dark .settings-menu-item.is-active {
 
 .player-reveal:hover {
   transform: translateY(-1px);
-  color: var(--ink);
-  border-color: var(--panel-border);
+  color: var(--control-ink);
 }
 
 .player.is-collapsed .player-left {
