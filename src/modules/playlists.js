@@ -6,6 +6,80 @@ import { createTrackButton } from "./ui.js";
 import { playTrack } from "./playback.js";
 import { jumpToAlbumById } from "./coverflow.js";
 
+const FAVORITES_PLAYLIST_ID = "favorites";
+const FAVORITES_PAGE_LIMIT = 100;
+
+function isFavoritesPlaylistId(playlistId) {
+  return playlistId === FAVORITES_PLAYLIST_ID;
+}
+
+function buildFavoritesPlaylist() {
+  const total = state.favoritesMeta.total;
+  return {
+    Id: FAVORITES_PLAYLIST_ID,
+    Name: "Favorites",
+    ChildCount: Number.isFinite(total) ? total : null,
+  };
+}
+
+function updateFavoritesPlaylistEntry() {
+  const entry = state.playlists.find((playlist) => playlist.Id === FAVORITES_PLAYLIST_ID);
+  if (!entry) {
+    return;
+  }
+  entry.ChildCount = Number.isFinite(state.favoritesMeta.total) ? state.favoritesMeta.total : null;
+}
+
+function getFavoritesTracks() {
+  return state.playlistTracksById.get(FAVORITES_PLAYLIST_ID) || [];
+}
+
+function favoritesStatusText() {
+  const total = state.favoritesMeta.total;
+  const loaded = getFavoritesTracks().length;
+  if (!loaded) {
+    return "No favorites found";
+  }
+  if (Number.isFinite(total)) {
+    if (loaded < total) {
+      return `Showing ${loaded} of ${total} favorites`;
+    }
+    return `${total} favorites`;
+  }
+  if (loaded) {
+    return `${loaded} favorites`;
+  }
+  return "Favorites";
+}
+
+function updateFavoritesStatus() {
+  updatePlaylistStatus(favoritesStatusText());
+}
+
+function shouldShowFavoritesLoadMore() {
+  if (state.favoritesMeta.fullyLoaded) {
+    return false;
+  }
+  return getFavoritesTracks().length > 0;
+}
+
+function updateFavoritesLoadMoreButton() {
+  if (!dom.playlistTracks) {
+    return;
+  }
+  const button = dom.playlistTracks.querySelector(".playlist-load-more");
+  if (!button) {
+    return;
+  }
+  const isLoading = state.favoritesMeta.loading;
+  button.disabled = isLoading;
+  button.textContent = isLoading ? "Loading favorites..." : "Load more favorites";
+}
+
+function favoritesEmptyMessage() {
+  return "No favorites found";
+}
+
 function updatePlaylistStatus(text) {
   if (!dom.playlistStatus) {
     return;
@@ -44,7 +118,7 @@ export function setPlaylistView(view, playlistId = null) {
   if (dom.playlistTitle) {
     dom.playlistTitle.textContent = playlist?.Name || "Playlist";
   }
-  updatePlaylistStatus("Loading tracks...");
+  updatePlaylistStatus(isFavoritesPlaylistId(playlistId) ? "Loading favorites..." : "Loading tracks...");
   renderPlaylistList();
 }
 
@@ -84,17 +158,16 @@ function renderPlaylistList() {
   });
 }
 
-function renderPlaylistTracks(playlistId) {
+function emptyPlaylistMessage(playlistId) {
+  return isFavoritesPlaylistId(playlistId) ? favoritesEmptyMessage() : "No tracks in this playlist";
+}
+
+function appendPlaylistTrackButtons(playlistId, tracks, startIndex) {
   if (!dom.playlistTracks) {
     return;
   }
-  dom.playlistTracks.innerHTML = "";
-  const tracks = state.playlistTracksById.get(playlistId) || [];
-  if (!tracks.length) {
-    dom.playlistTracks.innerHTML = '<div class="empty">No tracks in this playlist</div>';
-    return;
-  }
-  tracks.forEach((track, index) => {
+  tracks.forEach((track, offset) => {
+    const index = startIndex + offset;
     const titleText = track.Name || "Untitled";
     const albumName = track.Album || "Unknown album";
     const artists = Array.isArray(track.Artists) && track.Artists.length
@@ -115,6 +188,62 @@ function renderPlaylistTracks(playlistId) {
     });
     dom.playlistTracks.appendChild(button);
   });
+}
+
+function removePlaylistLoadMoreButton() {
+  if (!dom.playlistTracks) {
+    return;
+  }
+  const existing = dom.playlistTracks.querySelector(".playlist-load-more");
+  if (existing) {
+    existing.remove();
+  }
+}
+
+function appendPlaylistLoadMoreButton(label, onClick, isDisabled) {
+  if (!dom.playlistTracks) {
+    return;
+  }
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "playlist-load-more";
+  button.textContent = label;
+  button.disabled = Boolean(isDisabled);
+  button.addEventListener("click", () => {
+    onClick();
+  });
+  dom.playlistTracks.appendChild(button);
+}
+
+function renderPlaylistTracks(playlistId, options = {}) {
+  if (!dom.playlistTracks) {
+    return;
+  }
+  const {
+    appendItems = null,
+    showLoadMore = false,
+    loadMoreLabel = "Load more tracks",
+    onLoadMore = null,
+    loadMoreDisabled = false,
+  } = options;
+  const tracks = state.playlistTracksById.get(playlistId) || [];
+  if (!appendItems) {
+    dom.playlistTracks.innerHTML = "";
+    if (!tracks.length) {
+      dom.playlistTracks.innerHTML = `<div class="empty">${emptyPlaylistMessage(playlistId)}</div>`;
+      return;
+    }
+    appendPlaylistTrackButtons(playlistId, tracks, 0);
+  } else if (appendItems.length) {
+    removePlaylistLoadMoreButton();
+    const startIndex = Math.max(0, tracks.length - appendItems.length);
+    appendPlaylistTrackButtons(playlistId, appendItems, startIndex);
+  } else {
+    removePlaylistLoadMoreButton();
+  }
+  if (showLoadMore && onLoadMore) {
+    appendPlaylistLoadMoreButton(loadMoreLabel, onLoadMore, loadMoreDisabled);
+  }
   syncPlaylistHighlights();
 }
 
@@ -133,7 +262,8 @@ export async function loadPlaylists() {
     if (token !== state.playlistLoadToken) {
       return;
     }
-    state.playlists = data.Items || [];
+    const remotePlaylists = data.Items || [];
+    state.playlists = [buildFavoritesPlaylist(), ...remotePlaylists];
     renderPlaylistList();
     updatePlaylistStatus(
       state.playlists.length ? `${state.playlists.length} playlists` : "No playlists found"
@@ -147,8 +277,96 @@ export async function loadPlaylists() {
   }
 }
 
+async function fetchFavoritesPage(startIndex, limit) {
+  return fetchJson(
+    `/Users/${state.userId}/Items?IncludeItemTypes=Audio&Recursive=true&Filters=IsFavorite&SortBy=SortName&SortOrder=Ascending&Fields=RunTimeTicks,AlbumId,AlbumArtist,Artists,Album,UserData&StartIndex=${startIndex}&Limit=${limit}`
+  );
+}
+
+function renderFavoritesTracks({ appendItems = null } = {}) {
+  renderPlaylistTracks(FAVORITES_PLAYLIST_ID, {
+    appendItems,
+    showLoadMore: shouldShowFavoritesLoadMore(),
+    loadMoreLabel: state.favoritesMeta.loading ? "Loading favorites..." : "Load more favorites",
+    loadMoreDisabled: state.favoritesMeta.loading,
+    onLoadMore: () => {
+      void loadMoreFavorites();
+    },
+  });
+}
+
+async function loadFavoritesPage({ append }) {
+  if (!state.serverUrl || !state.apiKey || !state.userId) {
+    return;
+  }
+  if (state.favoritesMeta.loading) {
+    return;
+  }
+  state.favoritesMeta.loading = true;
+  const token = ++state.favoritesMeta.loadToken;
+  const startIndex = append ? state.favoritesMeta.startIndex : 0;
+  updatePlaylistStatus(append ? "Loading more favorites..." : "Loading favorites...");
+  updateFavoritesLoadMoreButton();
+  if (!append && dom.playlistTracks) {
+    dom.playlistTracks.innerHTML = '<div class="empty">Loading favorites...</div>';
+  }
+  try {
+    const data = await fetchFavoritesPage(startIndex, FAVORITES_PAGE_LIMIT);
+    if (token !== state.favoritesMeta.loadToken) {
+      return;
+    }
+    const items = data.Items || [];
+    const total = Number.isFinite(data.TotalRecordCount) ? data.TotalRecordCount : null;
+    const existing = append ? getFavoritesTracks() : [];
+    const merged = append ? existing.concat(items) : items;
+    state.playlistTracksById.set(FAVORITES_PLAYLIST_ID, merged);
+    if (total != null) {
+      state.favoritesMeta.total = total;
+    }
+    state.favoritesMeta.startIndex = startIndex + items.length;
+    const resolvedTotal = total != null ? total : state.favoritesMeta.total;
+    state.favoritesMeta.fullyLoaded = resolvedTotal != null
+      ? state.favoritesMeta.startIndex >= resolvedTotal
+      : items.length < FAVORITES_PAGE_LIMIT;
+    renderFavoritesTracks({ appendItems: append ? items : null });
+    updateFavoritesStatus();
+    updateFavoritesPlaylistEntry();
+    renderPlaylistList();
+  } catch (error) {
+    if (!append && dom.playlistTracks) {
+      dom.playlistTracks.innerHTML = '<div class="empty">Could not load favorites</div>';
+    }
+    updatePlaylistStatus("Favorites failed to load");
+  } finally {
+    if (token === state.favoritesMeta.loadToken) {
+      state.favoritesMeta.loading = false;
+      updateFavoritesLoadMoreButton();
+    }
+  }
+}
+
+async function ensureFavoritesTracks() {
+  if (state.playlistTracksById.has(FAVORITES_PLAYLIST_ID)) {
+    renderFavoritesTracks();
+    updateFavoritesStatus();
+    return;
+  }
+  await loadFavoritesPage({ append: false });
+}
+
+function loadMoreFavorites() {
+  if (state.favoritesMeta.loading) {
+    return;
+  }
+  void loadFavoritesPage({ append: true });
+}
+
 async function ensurePlaylistTracks(playlistId) {
   if (!playlistId) {
+    return;
+  }
+  if (isFavoritesPlaylistId(playlistId)) {
+    await ensureFavoritesTracks();
     return;
   }
   if (state.playlistTracksById.has(playlistId)) {
@@ -259,6 +477,11 @@ export function resetPlaylistState() {
   state.playlistPlayback = null;
   state.playlistsLoading = false;
   state.playlistLoadToken += 1;
+  state.favoritesMeta.total = null;
+  state.favoritesMeta.startIndex = 0;
+  state.favoritesMeta.loading = false;
+  state.favoritesMeta.loadToken += 1;
+  state.favoritesMeta.fullyLoaded = false;
   if (dom.coverflowSection) {
     dom.coverflowSection.classList.remove("is-playlist-open");
   }

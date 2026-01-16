@@ -936,6 +936,28 @@ body.is-playlist-open .playlist-toggle::after {
   min-height: 0;
 }
 
+.playlist-load-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 56px;
+  border-radius: 14px;
+  border: 1px dashed var(--panel-border);
+  background: var(--panel-chip);
+  color: var(--ink);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.playlist-load-more:hover {
+  border-color: var(--accent);
+}
+
+.playlist-load-more:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
 .playlist-entry {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -1091,6 +1113,7 @@ body.is-playlist-open .playlist-toggle::after {
 
 .track-playing {
   display: none;
+  order: -1;
   align-items: flex-end;
   gap: 2px;
   height: 12px;

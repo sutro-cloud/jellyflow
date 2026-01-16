@@ -44,6 +44,13 @@ export const state = {
   playlistPlayback: null,
   playlistsLoading: false,
   playlistLoadToken: 0,
+  favoritesMeta: {
+    total: null,
+    startIndex: 0,
+    loading: false,
+    loadToken: 0,
+    fullyLoaded: false,
+  },
   favoriteTrackId: null,
   isFavorite: false,
   favoriteBusy: false,
