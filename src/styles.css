@@ -725,13 +725,17 @@ body.is-playlist-open .playlist-toggle::after {
   color: var(--ink);
   display: none;
   flex-direction: column;
-  padding: 12px 0 0;
-  gap: 10px;
+  padding: 0 0 0;
+  gap: 0;
   overflow: hidden;
 }
 
 .coverflow-back-header {
-  padding: 0 10px;
+  padding: 8px 12px 10px;
+  margin: 0;
+  border-radius: 0;
+  background: linear-gradient(180deg, #12306b 0%, #2b5fb8 100%);
+  color: #f5f8ff;
 }
 
 .coverflow-item.is-open .coverflow-back {
@@ -762,6 +766,10 @@ body.is-playlist-open .playlist-toggle::after {
 .coverflow-back-title .subtitle {
   font-size: 0.85rem;
   color: var(--muted);
+}
+
+.coverflow-back-header .coverflow-back-title .subtitle {
+  color: rgba(245, 248, 255, 0.78);
 }
 
 .coverflow-back-body {
