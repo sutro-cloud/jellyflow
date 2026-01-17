@@ -2111,6 +2111,7 @@ body.is-typeahead-open .typeahead-input {
     align-self: center;
     width: 100%;
     min-width: 100%;
+    max-width: 100%;
   }
 
 }
