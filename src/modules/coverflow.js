@@ -39,12 +39,12 @@ const albumFlipLock = {
 const COVER_IMAGE_DEFAULT = 600;
 const COVER_IMAGE_SMALL = 420;
 const COVER_IMAGE_PORTRAIT_IOS = 320;
-const isPortrait =
+const isPortrait = () =>
   typeof window !== "undefined" &&
   typeof window.matchMedia === "function" &&
   window.matchMedia("(orientation: portrait)").matches;
 const coverImageSize =
-  IS_IOS && isPortrait
+  IS_IOS && isPortrait()
     ? COVER_IMAGE_PORTRAIT_IOS
     : (IS_IOS || IS_SMALL_VIEWPORT ? COVER_IMAGE_SMALL : COVER_IMAGE_DEFAULT);
 
@@ -439,7 +439,7 @@ function updateCoverflow() {
     item.classList.toggle("is-flipping", isAlbumFlipLocked(albumId));
     const allowReflection =
       absOffset <= 3 &&
-      (!IS_SMALL_VIEWPORT || (IS_IOS && !isPortrait));
+      (!IS_SMALL_VIEWPORT || IS_IOS);
     item.classList.toggle("with-reflection", allowReflection);
     item.style.zIndex = isOpen ? "200" : (100 - Math.abs(offset)).toString();
     const isHidden = absOffset > maxVisibleOffset;
@@ -467,6 +467,24 @@ function updateCoverflow() {
 
   updateAlbumMeta();
   maybePrefetchWindow();
+}
+
+function refreshCoverflowLayout() {
+  if (!dom.coverflowTrack) {
+    return;
+  }
+  updateCoverflow();
+  if (isSafari) {
+    boostSafariWillChange();
+    kickSafari3D();
+    kickSafariPerspective();
+    dom.coverflowTrack.getBoundingClientRect();
+    requestAnimationFrame(updateCoverflow);
+  }
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("resize", refreshCoverflowLayout);
 }
 
 export function focusActiveCover() {
