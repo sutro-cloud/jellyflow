@@ -2539,6 +2539,35 @@ body.is-typeahead-open .typeahead-input {
     align-self: center;
   }
 
+  .player-bar {
+    grid-template-columns: auto minmax(0, 1fr);
+    justify-items: stretch;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .player-actions {
+    justify-content: flex-start;
+  }
+
+  .player-center {
+    width: 100%;
+    justify-items: end;
+  }
+
+  .player-center .now-playing {
+    justify-content: flex-end;
+  }
+
+  .player-center .now-title,
+  .player-center .now-sub {
+    text-align: right;
+  }
+
+  .player-center .audio-controls {
+    width: min(360px, 100%);
+  }
+
   .now-playing {
     max-width: 100%;
     flex-wrap: nowrap;
@@ -2550,6 +2579,7 @@ body.is-typeahead-open .typeahead-input {
     width: 38px;
     height: 38px;
     border-radius: 10px;
+    order: 2;
   }
 
   .now-title,
@@ -2573,7 +2603,7 @@ body.is-typeahead-open .typeahead-input {
     min-width: 0;
     max-width: 100%;
     align-self: center;
-    transform: translateY(-10px);
+    transform: none;
   }
 
   .status {
