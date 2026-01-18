@@ -2568,6 +2568,10 @@ body.is-typeahead-open .typeahead-input {
     width: min(360px, 100%);
   }
 
+  .player-center .audio-progress {
+    padding-bottom: 4px;
+  }
+
   .now-playing {
     max-width: 100%;
     flex-wrap: nowrap;
