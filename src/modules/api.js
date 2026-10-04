@@ -23,21 +23,33 @@ function getDeviceId() {
 }
 
 function buildAuthHeader() {
-  return `MediaBrowser Client="Jellyflow", Device="Web", DeviceId="${getDeviceId()}", Version="1.0.0"`;
-}
 
-function headers() {
-  return {
-    "Content-Type": "application/json",
-    "X-Emby-Token": state.apiKey,
-  };
+  const deviceID = getDeviceId();
+  const device = "Web";
+
+  if (state.apiKey) {
+    return `MediaBrowser ,` +
+      `Token="${state.apiKey}", ` +
+      `Client="${__APP_NAME__}", ` +
+      `Version="${__APP_VERSION__}", ` +
+      `DeviceId="${deviceID}", ` +
+      `Device="${device}"`;
+  }
+  else {
+    return `MediaBrowser ,` +
+      `Client="${__APP_NAME__}", ` +
+      `Version="${__APP_VERSION__}", ` +
+      `DeviceId="${deviceID}", ` +
+      `Device="${device}"`;
+  }
 }
 
 async function request(path, options = {}) {
   const response = await fetch(`${state.serverUrl}${path}`, {
     ...options,
     headers: {
-      ...headers(),
+    "Content-Type": "application/json",
+    "Authorization": buildAuthHeader(),
       ...(options.headers || {}),
     },
   });
@@ -53,7 +65,7 @@ export async function authenticateByName(serverUrl, username, password) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-Emby-Authorization": buildAuthHeader(),
+      "Authorization": buildAuthHeader(),
     },
     body: JSON.stringify({
       Username: username,

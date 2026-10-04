@@ -29,7 +29,7 @@ export async function connect() {
     return;
   }
 
-  if (hasUsername && hasPassword) {
+  if (hasUsername) {
     setStatus("Signing in...", "info");
     try {
       const auth = await authenticateByName(serverUrl, username, password);
